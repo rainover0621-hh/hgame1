@@ -1355,7 +1355,10 @@ const MOBDRAW={
   c.fillStyle='#ffe9a0';ell(c,ox,oy,9,9);c.fill();
  },
 };
-const MOBH={wisp:130,toad:100,fox:112,shadow:150,jiangshi:135,imugi:128,bulgasari:122,wasp:120,plant:150,boar:104,goblin:150,golem:140,firebird:150,spider:150,wolf:156,ghost:200,demon:244,dragon:230};
+/* 그림 파일이 있는 요괴는 그림으로 그린다 (assets/mobs/{id}.png, 배경 투명). h는 화면에서의 키. 파일이 없으면 코드 그림 */
+const MOBSPR={spider:{h:205}};
+function mobSprite(id){const S=MOBSPR[id];if(!S)return null;if(!S.img){S.img=new Image();S.img.src=`assets/mobs/${id}.png`}return S.img.complete&&S.img.naturalWidth?S.img:null}
+const MOBH={wisp:130,toad:100,fox:112,shadow:150,jiangshi:135,imugi:128,bulgasari:122,wasp:120,plant:150,boar:104,goblin:150,golem:140,firebird:150,spider:198,wolf:156,ghost:200,demon:244,dragon:230};
 function drawEnemy(e){
  const sx=e.x-G.cam+(e.back||0);if(sx<-200||sx>W+220)return;
  const boss=!!e.boss,base=boss?1.05:.9;let a=1,sc=base;
@@ -1364,7 +1367,9 @@ function drawEnemy(e){
  const jx=e.hit>0?Math.sin(e.hit*70)*7:0;
  shadow(cx,sx+off,GROUND+4,46*sc,.3*a);
  cx.save();cx.globalAlpha=a;cx.translate(sx+off+jx,GROUND);cx.scale(sc,sc);
- MOBDRAW[e.mob](cx,G.t+(e.x%7));
+ const spr=mobSprite(e.mob);
+ if(spr){const h=MOBSPR[e.mob].h,w=h*spr.naturalWidth/spr.naturalHeight,br=Math.sin(G.t*2.4)*.025;cx.drawImage(spr,-w/2,-h*(1+br)+8,w,h*(1+br))}
+ else MOBDRAW[e.mob](cx,G.t+(e.x%7));
  cx.restore();
  if(e.hit>0||e.dying>0){cx.save();cx.globalAlpha=Math.min(.6,(e.hit||e.dying)*1.2);cx.fillStyle='#fff';ell(cx,sx+off,GROUND-60*sc,60*sc,70*sc);cx.fill();cx.restore()}
  if(!(e.dying>0)&&G.state!=='dodge'){
@@ -1469,8 +1474,8 @@ function drawBanner(){
  cx.fillStyle='#f6eedc';cx.fillText(b.title,W/2,246);
  cx.fillStyle='#e9b949';cx.font='19px "Gowun Dodum",sans-serif';cx.fillText(b.sub,W/2,278);
  const im=b.img&&portrait(b.img);
- if(im&&im.complete&&im.naturalWidth){const fw=118,fh=150,fx=46,fy=158,sw=im.naturalWidth,sh=Math.min(im.naturalHeight,sw*fh/fw);
-  cx.save();rr(cx,fx,fy,fw,fh,10);cx.clip();cx.drawImage(im,0,0,sw,sh,fx,fy,fw,fh);cx.restore();
+ if(im&&im.complete&&im.naturalWidth){const fw=118,fh=150,fx=46,fy=158,iw=im.naturalWidth,ih=im.naturalHeight;let sw=iw,sh=iw*fh/fw;if(sh>ih){sh=ih;sw=ih*fw/fh}
+  cx.save();rr(cx,fx,fy,fw,fh,10);cx.clip();cx.drawImage(im,(iw-sw)/2,0,sw,sh,fx,fy,fw,fh);cx.restore();
   cx.strokeStyle='#e9b949';cx.lineWidth=3;rr(cx,fx,fy,fw,fh,10);cx.stroke()}
  cx.restore();
 }

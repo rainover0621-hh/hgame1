@@ -36,3 +36,4 @@
 - `concept.html`: 새 세계관(한문 요괴 원정기) 설정집 미리보기
 - `assets/sfx/`: 효과음 (출처는 `CREDITS.md`)
 - `assets/portraits/`: 주인공·보스 원화 초상화 (선택 화면, 보스 등장 화면)
+- `assets/mobs/`: 요괴 그림 (배경 투명 PNG, `요괴이름.png`). 파일이 있으면 게임 속 요괴가 이 그림으로 바뀝니다. 지원 이름: wasp, plant, boar, fox, wisp, shadow, jiangshi, goblin, golem, bulgasari, imugi, firebird, spider, wolf, ghost, demon, dragon
