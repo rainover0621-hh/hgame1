@@ -149,6 +149,30 @@ th{color:var(--muted);font-weight:400}
 .notes .na{font-family:var(--han),var(--body);color:var(--jade);margin-top:2px}
 .notes .ne{font-size:13px;margin-top:4px}
 .empty{color:var(--muted);font-size:14px}
+/* 이야기 */
+.story{display:flex;flex-direction:column;gap:12px}
+.story .who{display:flex;gap:12px;align-items:center}
+.story .face{width:64px;height:64px;border-radius:12px;object-fit:cover;object-position:50% 12%;border:2px solid var(--gold);flex:none}
+.story .badge{width:64px;height:64px;border-radius:12px;display:grid;place-items:center;font-family:var(--han);font-size:30px;font-weight:700;color:#fff;flex:none;box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+.story .nm{font-size:17px;font-weight:700}
+.story .nm small{display:block;font-size:12px;color:var(--muted);font-weight:400}
+.story .line{font-size:17px;line-height:1.75;margin:0;min-height:5.2em;padding:14px 16px;background:var(--ink-3);border-radius:12px;animation:lineIn .35s ease}
+.story .line.nar{background:transparent;border:1px dashed var(--line);color:var(--paper);font-family:var(--han)}
+.story .line .hj{font-family:var(--han);color:var(--gold)}
+@keyframes lineIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.story .line{animation:none}}
+.story .row{justify-content:space-between}
+.story .skip{background:none;border:0;color:var(--muted);font-size:13px;text-decoration:underline}
+.story .sprog{font-size:12px;color:var(--muted)}
+.choice{display:flex;flex-direction:column;gap:4px;width:100%;text-align:left;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--ink-3);transition:border-color .12s,transform .12s}
+.choice:hover{border-color:var(--gold);transform:translateX(3px)}
+.choice b{font-size:15px}
+.choice b kbd{margin-right:6px}
+.fxs{display:flex;flex-wrap:wrap;gap:4px}
+.fx{display:inline-block;font-size:12px;padding:1px 8px;border-radius:6px}
+.fx.good{background:rgba(58,168,147,.22);color:#86e3cc}.fx.bad{background:rgba(224,83,58,.22);color:#ffa18e}.fx.risk{background:rgba(233,185,73,.18);color:var(--gold)}
+.journey{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13px}
+.journey li{background:var(--ink-3);border-radius:8px;padding:8px 10px}
 
 /* 캐릭터 고르기 */
 .chars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
@@ -358,7 +382,7 @@ const shade=(c,t)=>t<0?mix(c,'#000000',-t):mix(c,'#ffffff',t);
 const savedChar=store.get('hanmun-char');
 const G={state:'title',stage:0,cam:0,speed:0,t:0,hp:100,maxHp:100,score:0,combo:0,maxCombo:0,correct:0,total:0,
  wrong:[],inv:{shield:0,hint:0},ents:[],parts:[],floats:[],cur:null,banner:null,shake:0,flash:0,fade:0,
- used:new Set(),cats:new Set(CATS),stDone:0,stTotal:0,bullets:[],dodge:null,hitstop:0,zoom:1,char:CHARS[savedChar]?savedChar:'brain'};
+ used:new Set(),cats:new Set(CATS),stDone:0,stTotal:0,bullets:[],dodge:null,hitstop:0,zoom:1,mod:{dmg:1,time:0,score:1},journey:[],won:false,story:null,char:CHARS[savedChar]?savedChar:'brain'};
 const P={y:0,vy:0,onGround:true,jumps:0,phase:0,attack:0,hurt:0,knock:0,shieldFx:0,slide:0,dx:0,inv:0,mvL:false,mvR:false,sq:0,vx:0,trail:[],step:0,happy:0};
 const CH=()=>CHARS[G.char];
 
@@ -479,11 +503,11 @@ function slide(){
 function start(){
  initAudio();const C=CH();
  Object.assign(G,{state:'run',stage:0,hp:C.hp,maxHp:C.hp,score:0,combo:0,maxCombo:0,correct:0,total:0,wrong:[],inv:{shield:C.shields,hint:C.hints},
-  ents:[],parts:[],floats:[],bullets:[],dodge:null,cur:null,fade:.8,banner:{t:3,d:3,title:'제1장 · 도화 마을',sub:'돌부리는 점프, 까마귀는 숙여서 피하자'}});
+  ents:[],parts:[],floats:[],bullets:[],dodge:null,cur:null,fade:.8,banner:null,mod:{dmg:1,time:0,score:1},journey:[],won:false});
  G.used=new Set();
  Object.assign(P,{y:0,vy:0,onGround:true,jumps:0,attack:0,hurt:0,knock:0,shieldFx:0,slide:0,dx:0,inv:0});setMovePad(false);
- buildStage(0,G.cam+700);hidePanel();
- document.activeElement&&document.activeElement.blur&&document.activeElement.blur();
+ buildStage(0,G.cam+700);
+ startStory(STORY.prologue,()=>{G.state='run';G.banner={t:3,d:3,title:'제1장 · 도화 마을',sub:'돌부리는 점프, 까마귀는 숙여서 피하자'}});
 }
 function toTitle(){const C=CH();G.state='title';G.ents=[];G.banner=null;G.stage=0;G.hp=G.maxHp=C.hp;G.score=0;G.combo=0;G.inv={shield:0,hint:0};G.fade=.6;P.slide=0;showTitle()}
 
@@ -505,7 +529,7 @@ function interact(){
 }
 const josa=(w,a,b)=>(w.charCodeAt(w.length-1)-0xAC00)%28?a:b;
 function hitObs(e,O){
- const C=CH(),n=Math.max(1,Math.round(O.dmg*C.obsMul));
+ const C=CH(),n=Math.max(1,Math.round(O.dmg*C.obsMul*G.mod.dmg));
  damage(n,false);e.fling=.8;
  if(C.obsMul<1){sfx('smash');floater(`${O.name}${josa(O.name,'을','를')} 부쉈다`,'#f1ebdc',PX,GROUND-200,18);burst(e.x-G.cam,GROUND-20,'#6b6670',12)}
  else{sfx('hit');floater(`${O.name}에 부딪혔다`,'#f1ebdc',PX,GROUND-200,18)}
@@ -520,14 +544,14 @@ function collect(e){
 function startQuiz(e){
  G.state='quiz';P.slide=0;
  const q=e.boss?pick(e.qlv):e.q,lv=e.boss?4:q.l;
- G.cur={e,q,lv,opts:shuffle(q.o.map((t,i)=>({t,ok:i===0}))),time:LV[lv].time+CH().time,done:false,hint:false};
+ G.cur={e,q,lv,opts:shuffle(q.o.map((t,i)=>({t,ok:i===0}))),time:Math.max(8,LV[lv].time+CH().time+G.mod.time),done:false,hint:false};
  G.cur.left=G.cur.time;
  renderQuiz();
 }
 function renderQuiz(){
  const c=G.cur,L=LV[c.lv],q=c.q,e=c.e,C=CH();
- const pts=Math.round(L.pts*C.scoreMul),dmg=Math.round(L.dmg*C.dmgMul);
- const pips=e.boss?`<span class="pips" title="대왕의 남은 기력">${'●'.repeat(e.hp)}${'○'.repeat(e.max-e.hp)}</span>`:'';
+ const pts=Math.round(L.pts*C.scoreMul*G.mod.score),dmg=Math.round(L.dmg*C.dmgMul*G.mod.dmg);
+ const pips=e.boss?`<span class="pips" title="보스의 남은 기력">${'●'.repeat(e.hp)}${'○'.repeat(e.max-e.hp)}</span>`:'';
  showPanel(`<div class="quiz">
   <div class="qmeta"><span class="lvl ${L.cls}">${L.name} · ${pts}점</span><span class="cat">${esc(q.c)}</span>${pips}<span class="dmg">오답 시 HP −${dmg}</span></div>
   <div class="timer"><i id="tbar"></i><b id="tnum">${c.time}초</b></div>
@@ -552,14 +576,14 @@ function answer(i){
  c.ok=ok;c.pick=i;
  if(ok){
   G.correct++;G.combo++;G.maxCombo=Math.max(G.maxCombo,G.combo);
-  const bonus=G.combo>=3?Math.min(25,(G.combo-2)*5):0;c.gain=Math.round((L.pts+bonus)*C.scoreMul);G.score+=c.gain;
+  const bonus=G.combo>=3?Math.min(25,(G.combo-2)*5):0;c.gain=Math.round((L.pts+bonus)*C.scoreMul*G.mod.score);G.score+=c.gain;
   P.attack=.45;P.happy=1.4;sfx('ok');setTimeout(()=>{G.hitstop=.09;G.zoom=1.06},140);
   if(e.boss){e.hp--;e.hit=.5;if(e.hp<=0)e.dying=1}else e.dying=.6;
   setTimeout(()=>{burst(e.x-G.cam,GROUND-(e.boss?80:50),'#141218',e.boss?40:24);sfx(e.boss&&e.hp<=0?'boss':'defeat')},120);
   floater(`+${c.gain}`,'#e9b949',e.x-G.cam,GROUND-(e.boss?230:150),34);
  }else{
   G.combo=0;G.wrong.push(c.q);e.lunge=.5;sfx('bad');
-  c.dmg=damage(Math.round(L.dmg*C.dmgMul),true);c.blocked=c.dmg===0;
+  c.dmg=damage(Math.round(L.dmg*C.dmgMul*G.mod.dmg),true);c.blocked=c.dmg===0;
  }
  renderFeedback();
 }
@@ -620,7 +644,7 @@ function updateDodge(dt){
   if(b.y>GROUND+6||b.x<-40||b.x>W+40||b.y<-60&&b.vy<0)b.dead=true;
   if(!b.dead&&P.inv<=0){const cxp=Math.max(px-14,Math.min(b.x,px+14)),cyp=Math.max(top,Math.min(b.y,bot));
    if((b.x-cxp)**2+(b.y-cyp)**2<b.r*b.r){b.dead=true;d.hits++;P.inv=1;sfx('hit');burst(b.x,b.y,b.col,8,.5);
-    damage(Math.max(1,Math.round(6*CH().obsMul)),false);if(G.hp<=0){G.bullets=[];setMovePad(false);gameOver();return}}}
+    damage(Math.max(1,Math.round(6*CH().obsMul*G.mod.dmg)),false);if(G.hp<=0){G.bullets=[];setMovePad(false);gameOver();return}}}
  }
  G.bullets=G.bullets.filter(b=>!b.dead);
  if(d.t>=d.dur&&!G.bullets.length||d.t>=d.dur+2)endDodge();
@@ -640,14 +664,142 @@ function drawBullets(){
   cx.fillStyle='#1b1a22';cx.font='700 13px "Noto Serif KR",serif';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(b.ch,b.x,b.y+1);cx.textBaseline='alphabetic';
  }
 }
+/* ───────── 이야기: 학생이 과거로 환생해 한문으로 요괴를 물리친다 ───────── */
+/* 대사의 {name}은 고른 주인공 이름, {name은}처럼 쓰면 받침에 맞는 조사가 붙는다.
+   선택지 fx: hp 회복/감소 · full 완전 회복 · maxhp 최대 HP · shield 부적 · hint 붓 · score 점수 · time 제한 시간 · dmg 받는 피해 배율 · mul 점수 배율
+   quiz가 있는 선택지는 한문 문제를 맞히면 win, 틀리면 lose */
+const NPC={
+ hun:{name:'훈장',han:'訓',col:'#2f8f80',sub:'도화 마을 서당'},
+ jumo:{name:'주모',han:'酒',col:'#c47b2c',sub:'고갯마루 주막'},
+ dosa:{name:'떠돌이 도사',han:'道',col:'#5a6ab8',sub:'대숲 끝 갈림길'},
+ seonbi:{name:'선비의 혼',han:'魂',col:'#6a5a8a',sub:'귀곡에 묶여 있던 영혼'},
+ jang:{name:'장수',han:'將',col:'#a8322a',sub:'요마성에 갇혀 있던 장수'},
+ yong:{name:'용',han:'龍',col:'#2f6aa0',sub:'창해 용궁의 주인'},
+};
+const STORY={
+ prologue:{lines:[
+  ['nar','기말고사 전날 밤, {name은} 한문 교과서를 베고 잠이 들었다.'],
+  ['nar','눈을 떠 보니 낯선 초가지붕 아래. 사람들은 상투를 틀었고, 간판은 모두 한자였다.'],
+  ['hun','정신이 드느냐? 개울가에 쓰러져 있기에 서당으로 데려왔다.'],
+  ['hero','여기가… 어디죠? 설마 옛날로 온 건가?'],
+  ['hun','이상한 말을 하는구나. 지금 이 땅에는 글자를 먹는 요괴들이 나타나, 책과 비석의 글자가 하나둘 사라지고 있다.'],
+  ['hun','글을 잃으면 사람은 이름도 약속도 잊는다. 그런데 너는 처음 보는 글도 술술 읽더구나.'],
+  ['hero','1년 동안 배운 한문… 여기서는 이게 힘이 된다는 거예요?'],
+  ['hun','다섯 고개 너머 창해 용궁에, 글자를 삼키는 근원이 있다 한다. 부디 그 글을 되찾아 다오.'],
+  ['hun','<span class="hj">學而時習之</span>. 배우고 때때로 익혔다면, 두려울 것이 없을 게다.'],
+ ]},
+ stages:[
+  {npc:'jumo',lines:[
+   ['jumo','어머나, 그 큰 거미를 해치웠다고? 우리 주막 간판 글자도 돌아왔네!'],
+   ['hero','글자가… 다시 생겼어요.'],
+   ['jumo','보답하고 싶은데, 마침 귀한 산삼이 하나 있어. 다만 우리 집 가훈을 읽을 줄 아는 사람한테만 주기로 했지.'],
+  ],choices:[
+   {label:'가훈을 읽어 본다',quiz:[1,2],win:{fx:{hp:30,shield:1},msg:'“제대로 읽었네!” 주모가 산삼과 부적을 내주었다.'},lose:{fx:{hp:-10},msg:'“에구, 아직 멀었구먼.” 주모가 혀를 찼다. 괜히 기운이 빠졌다.'}},
+   {label:'국밥 한 그릇만 얻어 먹는다',fx:{hp:15},msg:'뜨끈한 국밥에 몸이 풀렸다.'},
+   {label:'외상으로 산삼을 달라고 조른다',fx:{hp:30,score:-80},msg:'산삼은 받았지만, 외상값으로 점수를 내야 했다.'},
+  ]},
+  {npc:'dosa',lines:[
+   ['dosa','늑대 요괴의 울음이 그쳤군. 자네, 이 시대 사람이 아니지?'],
+   ['hero','어떻게 아셨어요?'],
+   ['dosa','글을 읽는 눈빛이 달라. 다음은 귀신 골짜기, 귀곡일세. 맨몸으로 가면 혼이 빠질 걸세.'],
+  ],choices:[
+   {label:'도사의 부적을 받는다',fx:{shield:2,maxhp:-10},msg:'부적 두 장을 받았다. 부적이 기운을 조금 빨아들인다.'},
+   {label:'도사의 시험을 받는다',quiz:[2],win:{fx:{maxhp:20,hp:20},msg:'“허허, 제법이군.” 막혔던 기혈이 트였다.'},lose:{fx:{hp:-15},msg:'“공부가 부족하구먼.” 도사의 지팡이에 이마를 맞았다.'}},
+   {label:'길만 묻고 떠난다',fx:{time:3},msg:'지름길을 알게 되어 마음에 여유가 생겼다.'},
+  ]},
+  {npc:'seonbi',lines:[
+   ['seonbi','고맙소… 귀혼에게 붙잡혀 백 년을 떠돌았소.'],
+   ['seonbi','과거 시험장에 가던 길이었는데, 끝내 답안을 다 쓰지 못했지.'],
+   ['seonbi','그대가 내 마지막 답을 채워 준다면, 내 붓과 책을 모두 주겠소.'],
+  ],choices:[
+   {label:'선비의 답안을 채워 준다',quiz:[3,2],win:{fx:{hint:2,mul:1.15},msg:'선비가 웃으며 사라졌다. 붓 두 자루와 책이 남았다.'},lose:{fx:{dmg:1.1},msg:'혼의 한숨이 서늘하게 감돈다. 몸이 무거워졌다.'}},
+   {label:'명복을 빌어 준다',fx:{hp:20,shield:1},msg:'혼이 편히 떠나며 부적 한 장을 남겼다.'},
+   {label:'책만 받아 간다',fx:{time:5,score:-60},msg:'책 덕분에 생각이 빨라졌지만, 선비의 눈빛이 섭섭해 보였다.'},
+  ]},
+  {npc:'jang',lines:[
+   ['jang','요마의 사슬을 끊어 주다니! 이 은혜는 잊지 않겠다.'],
+   ['jang','마지막 고개, 창해의 용은 힘으로는 이길 수 없다. 오직 글로써만 상대할 수 있지.'],
+   ['jang','내 갑옷을 가져가겠나, 아니면 내 군사의 호위를 받겠나?'],
+  ],choices:[
+   {label:'장수의 갑옷을 입는다',fx:{dmg:.75,time:-3},msg:'갑옷이 든든하다. 다만 무거워서 생각할 틈이 줄었다.'},
+   {label:'군사의 호위를 받는다',fx:{full:1,shield:1},msg:'군사들 덕분에 푹 쉬었다. 기운이 가득 찼다.'},
+   {label:'장수의 병법서를 읽는다',quiz:[3],win:{fx:{mul:1.2,hint:1},msg:'병법의 이치를 깨달았다. 한 수 앞이 보인다.'},lose:{fx:{hp:-20},msg:'어려운 병법서에 머리가 지끈거렸다.'}},
+  ]},
+ ],
+ ending:{lines:[
+  ['yong','…훌륭하다. 천 년 동안 글자를 삼켜 온 것은, 글을 소중히 여기는 자를 기다렸기 때문이다.'],
+  ['yong','너는 먼 훗날에서 왔구나. 이제 돌아갈 때다. 네가 익힌 글이 이 시대를 구했음을 잊지 마라.'],
+  ['nar','눈부신 빛이 감싸더니, {name은} 교실 책상 위에서 눈을 떴다.'],
+  ['nar','펼쳐진 한문 교과서 귀퉁이에 처음 보는 붓글씨가 적혀 있었다. <span class="hj">溫故知新</span>.'],
+ ]},
+};
+function fillName(t){const n=CH().name;return t.replace(/\{name(은|는|이|가|을|를|과|와)?\}/g,(m,j)=>{if(!j)return n;const pair={은:'은는',는:'은는',이:'이가',가:'이가',을:'을를',를:'을를',과:'과와',와:'과와'}[j];return n+josa(n,pair[0],pair[1])})}
+function fxList(fx){const o=[],sg=v=>v>0?'+'+v:'−'+Math.abs(v);
+ if(fx.full)o.push(['HP 완전 회복',1]);if(fx.hp)o.push([`HP ${sg(fx.hp)}`,fx.hp>0]);if(fx.maxhp)o.push([`최대 HP ${sg(fx.maxhp)}`,fx.maxhp>0]);
+ if(fx.shield)o.push([`부적 +${fx.shield}`,1]);if(fx.hint)o.push([`붓 +${fx.hint}`,1]);if(fx.score)o.push([`점수 ${sg(fx.score)}`,fx.score>0]);
+ if(fx.time)o.push([`제한 시간 ${sg(fx.time)}초`,fx.time>0]);if(fx.dmg)o.push([`받는 피해 ${fx.dmg<1?'−':'+'}${Math.round(Math.abs(1-fx.dmg)*100)}%`,fx.dmg<1]);
+ if(fx.mul)o.push([`정답 점수 ×${fx.mul}`,fx.mul>1]);return o}
+const fxChips=(fx,pre='')=>fxList(fx).map(([t,g])=>`<span class="fx ${g?'good':'bad'}">${pre}${t}</span>`).join('');
+function applyFx(fx){
+ if(fx.full){heal(G.maxHp)}
+ if(fx.maxhp){G.maxHp=Math.max(40,G.maxHp+fx.maxhp);if(fx.maxhp<0)G.hp=Math.min(G.hp,G.maxHp)}
+ if(fx.hp){if(fx.hp>0)heal(fx.hp);else{G.hp=Math.max(1,G.hp+fx.hp);floater(`${fx.hp}`,'#ff6a4d')}}
+ if(fx.shield)G.inv.shield+=fx.shield;if(fx.hint)G.inv.hint+=fx.hint;if(fx.score)G.score=Math.max(0,G.score+fx.score);
+ if(fx.time)G.mod.time+=fx.time;if(fx.dmg)G.mod.dmg*=fx.dmg;if(fx.mul)G.mod.score*=fx.mul;
+}
+function startStory(sc,done){G.state='story';P.slide=0;setMovePad(false);G.story={sc,i:0,done,phase:'lines'};renderStory();
+ document.activeElement&&document.activeElement.blur&&document.activeElement.blur()}
+function speaker(who){
+ if(who==='hero'){const C=CH();return`<div class="who"><img class="face" src="assets/portraits/${C.art}.jpg" alt=""><div class="nm">${C.name}<small>${C.age}세 ${C.title} · 현대에서 온 학생</small></div></div>`}
+ if(who==='nar')return'';
+ const N=NPC[who];return`<div class="who"><div class="badge" style="background:${N.col}">${N.han}</div><div class="nm">${N.name}<small>${N.sub}</small></div></div>`}
+function renderStory(){
+ const st=G.story,sc=st.sc;
+ if(st.phase==='lines'){
+  const ln=sc.lines[st.i];if(!ln){st.phase=sc.choices?'choose':'end';return renderStory()}
+  const[who,text]=ln;
+  showPanel(`<div class="story">${speaker(who)}<p class="line${who==='nar'?' nar':''}">${fillName(text)}</p>
+   <div class="row"><span class="sprog">${st.i+1} / ${sc.lines.length}</span><span><button class="skip" data-act="sskip">건너뛰기</button> <button class="go" id="storyNext" data-act="snext">다음 <kbd>Enter</kbd></button></span></div></div>`);
+  $('#storyNext').focus({preventScroll:true});
+ }else if(st.phase==='choose'){
+  const N=NPC[sc.npc];
+  showPanel(`<div class="story">${speaker(sc.npc)}<p class="line">어떻게 하겠느냐?</p>
+   ${sc.choices.map((ch,i)=>`<button class="choice" id="ch${i}" data-act="schoose" data-i="${i}"><b><kbd>${i+1}</kbd>${ch.label}</b><span class="fxs">${ch.quiz?`<span class="fx risk">한문 문제</span>${fxChips(ch.win.fx,'맞히면 ')}${fxChips(ch.lose.fx,'틀리면 ')}`:fxChips(ch.fx)}</span></button>`).join('')}</div>`);
+ }else if(st.phase==='quiz'){
+  const q=st.q;
+  showPanel(`<div class="story">${speaker(sc.npc)}<p class="qtext">${esc(q.q)}</p>${q.h?`<div class="han${q.h.replace(/\s/g,'').length>8?' long':''}">${esc(q.h)}</div>`:''}
+   <div class="opts">${st.opts.map((o,i)=>`<button class="opt" id="sopt${i}" data-act="sopt" data-i="${i}"><kbd>${i+1}</kbd><span>${esc(o.t)}</span></button>`).join('')}</div></div>`);
+ }else if(st.phase==='result'){
+  const r=st.res;
+  showPanel(`<div class="story">${speaker(sc.npc)}<p class="line">${r.msg}</p><div class="fxs">${fxChips(r.fx)}</div>
+   ${r.q?`<p class="exp">정답: <b>${esc(r.q.o[0])}</b> · ${esc(r.q.e)}</p>`:''}
+   <div class="row"><span></span><button class="go" id="storyNext" data-act="sdone">길을 떠난다 <kbd>Enter</kbd></button></div></div>`);
+  $('#storyNext').focus({preventScroll:true});
+ }else{const d=st.done;G.story=null;hidePanel();d()}
+}
+function storyNext(){const st=G.story;if(!st)return;if(st.phase==='lines'){st.i++;renderStory()}else if(st.phase==='result'){st.phase='end';renderStory()}}
+function storySkip(){const st=G.story;if(!st||st.phase!=='lines')return;st.i=st.sc.lines.length;renderStory()}
+function storyChoose(i){
+ const st=G.story,ch=st.sc.choices[i];if(!ch||st.phase!=='choose')return;st.ch=ch;sfx('item');
+ if(ch.quiz){st.q=pick(ch.quiz);st.opts=shuffle(st.q.o.map((t,k)=>({t,ok:k===0})));st.phase='quiz'}
+ else{applyFx(ch.fx);G.journey.push(`${NPC[st.sc.npc].name} · ${ch.label}`);st.res={msg:ch.msg,fx:ch.fx};st.phase='result'}
+ renderStory()}
+function storyAnswer(i){
+ const st=G.story;if(!st||st.phase!=='quiz')return;const ok=st.opts[i].ok,r=ok?st.ch.win:st.ch.lose;
+ if(ok){G.correct++;sfx('ok')}else{G.wrong.push(st.q);sfx('bad');G.shake=.3;G.flash=.3;domShake()}G.total++;
+ applyFx(r.fx);G.journey.push(`${NPC[st.sc.npc].name} · ${st.ch.label} (${ok?'성공':'실패'})`);st.res={msg:r.msg,fx:r.fx,q:ok?null:st.q};st.phase='result';renderStory()}
 function stageClear(){
  if(G.stage<STAGES.length-1){
-  const beaten=MOBS[STAGES[G.stage].boss].name;G.stage++;const S=STAGES[G.stage];G.fade=1;heal(15);
-  G.banner={t:3.2,d:3.2,title:`${S.num} · ${S.name}`,sub:`${beaten} 격파! 주막에서 한숨 돌렸다 · HP +15`};
-  buildStage(G.stage,G.cam+1400);
+  const done=G.stage,beaten=MOBS[STAGES[done].boss].name;
+  G.banner={t:2,d:2,title:`${beaten} 격파!`,sub:'누군가 다가온다…'};
+  setTimeout(()=>startStory(STORY.stages[done],()=>{
+   G.stage++;const S=STAGES[G.stage];G.fade=1;heal(15);G.state='run';
+   G.banner={t:3.2,d:3.2,title:`${S.num} · ${S.name}`,sub:'한숨 돌리고 다시 길을 떠났다 · HP +15'};
+   buildStage(G.stage,G.cam+1400)}),1600);
+  G.state='story';
  }else{
-  G.state='win';sfx('win');G.banner={t:4,d:4,title:'원정 완료!',sub:'창해의 용을 넘어 모든 글자를 되찾았다'};
-  setTimeout(showResult,1900);
+  G.state='win';G.won=true;sfx('win');G.banner={t:3,d:3,title:'원정 완료!',sub:'창해의 용을 넘어 모든 글자를 되찾았다'};
+  setTimeout(()=>startStory(STORY.ending,showResult),1900);
  }
 }
 function gameOver(){G.state='over';P.slide=0;G.dodge=null;G.bullets=[];setMovePad(false);hidePanel();G.banner={t:99,d:99,title:'쓰러졌다…',sub:'서당으로 돌아가 다시 복습하자'};setTimeout(showResult,1300)}
@@ -689,6 +841,8 @@ function showTitle(){
    <tr><td>굴러오는 바위 · 파도</td><td>점프</td><td>HP −7~10</td></tr>
    <tr><td colspan="3">요괴 사이에 장애물이 6~10개. 뒤 스테이지일수록 촘촘하고, 한 번에 넘어야 하는 연속 장애물이 섞인다.</td></tr>
   </tbody></table>
+  <h2>이야기</h2>
+  <p class="keys">기말고사 전날 밤 한문 교과서를 베고 잠든 학생이 글자를 먹는 요괴가 날뛰는 옛날로 떨어졌다. 고개를 넘을 때마다 만나는 사람들과 대화하고, 선택에 따라 회복·부적·점수 배율 같은 이득이나 최대 HP 감소·피해 증가 같은 페널티를 얻는다. 한문 문제로 운을 시험하는 선택도 있다.</p>
   <h2>고개마다 보스 · 스펠카드 탄막</h2>
   <p class="keys">거대거미(巨蛛) → 늑대괴수(狼妖) → 귀혼(鬼魂) → 요마(妖魔) → 용(龍). 보스는 문제를 내기 전마다 스펠카드를 펼친다. 조준탄 · 일자탄 · 글자비 · 회오리탄을 좌우로 움직이며 피하자. 한 발도 맞지 않으면 +20점, 맞으면 한 발에 HP −6.</p>
   <h2>아이템</h2>
@@ -710,13 +864,13 @@ function toggleCat(b){
  b.setAttribute('aria-pressed',G.cats.has(c));
 }
 function showResult(){
- const acc=G.total?G.correct/G.total:0,won=G.state==='win',C=CH();
+ const acc=G.total?G.correct/G.total:0,won=G.state==='win'||G.won,C=CH();
  const prevBest=+store.get('hanmun-best')||0,newBest=G.score>prevBest;
  if(newBest)store.set('hanmun-best',G.score);
  const S=STAGES[G.stage];
  const g=won?(acc>=.9?{seal:'壯元',name:'장원 급제',msg:'1년 동안 배운 한문을 완벽히 익혔다. 훈장님도 놀라실 실력이다.'}
   :acc>=.7?{seal:'及第',name:'급제',msg:'대부분의 글자를 되찾았다. 오답 노트로 마무리 복습을 하자.'}
-  :{seal:'完走',name:'완주',msg:'끝까지 달려 대왕을 물리쳤다. 틀린 문제를 다시 보면 다음엔 급제할 수 있다.'})
+  :{seal:'完走',name:'완주',msg:'끝까지 달려 창해의 용을 넘었다. 틀린 문제를 다시 보면 다음엔 급제할 수 있다.'})
   :{seal:'落榜',name:'낙방',msg:`${S.num} ${S.name}에서 쓰러졌다. 오답 노트를 보고 다시 도전하자.`};
  showPanel(`<div class="result">
   <div class="head"><div class="seal">${g.seal}</div><div><p class="eyebrow">원정 결과 · ${C.role} ${C.name}</p><h1>${g.name}</h1></div></div>
@@ -727,8 +881,9 @@ function showResult(){
    <div><dt>최고 콤보</dt><dd>${G.maxCombo}</dd></div>
    <div><dt>남은 HP</dt><dd>${G.hp}</dd></div>
   </dl>
-  <div class="row"><button class="go" id="retryBtn" data-act="retry">다시 도전</button><button class="ghost" id="homeBtn" data-act="home">모험가 바꾸기</button>
+  <div class="row"><button class="go" id="retryBtn" data-act="retry">다시 도전</button><button class="ghost" id="homeBtn" data-act="home">주인공 바꾸기</button>
   <span class="best">${newBest?'새 최고 기록!':`최고 기록 ${Math.max(prevBest,G.score)}점`}</span></div>
+  ${G.journey.length?`<h2>여정의 선택</h2><ul class="journey">${G.journey.map(j=>`<li>${esc(j)}</li>`).join('')}</ul>`:''}
   <h2>오답 노트 (${G.wrong.length})</h2>
   ${G.wrong.length?`<ul class="notes">${G.wrong.map(q=>`<li><div class="nh">${esc(q.h||'—')}</div><div><p class="nq">[${esc(q.c)}] ${esc(q.q)}</p><p class="na">정답: ${esc(q.o[0])}</p><p class="ne">${esc(q.e)}</p></div></li>`).join('')}</ul>`
    :`<p class="empty">틀린 문제가 없다. 완벽한 원정!</p>`}
@@ -1915,9 +2070,14 @@ panel.addEventListener('click',ev=>{
  const a=b.dataset.act;initAudio();
  if(a==='start'||a==='retry')start();else if(a==='opt')answer(+b.dataset.i);else if(a==='hint')useHint();
  else if(a==='next')next();else if(a==='home')toTitle();else if(a==='cat')toggleCat(b);else if(a==='char')pickChar(b);
+ else if(a==='snext'||a==='sdone')storyNext();else if(a==='sskip')storySkip();else if(a==='schoose')storyChoose(+b.dataset.i);else if(a==='sopt')storyAnswer(+b.dataset.i);
 });
 addEventListener('keydown',ev=>{
  const k=ev.key,c=G.cur;
+ if(G.state==='story'&&G.story){const st=G.story;
+  if(k==='Enter'&&(st.phase==='lines'||st.phase==='result')){ev.preventDefault();storyNext();return}
+  if(k>='1'&&k<='4'){if(st.phase==='choose'){ev.preventDefault();storyChoose(+k-1);return}if(st.phase==='quiz'){ev.preventDefault();storyAnswer(+k-1);return}}
+  return}
  if(G.state==='quiz'&&c){
   if(!c.done&&k>='1'&&k<='4'){const b=$('#opt'+(+k-1));if(b&&!b.disabled)answer(+k-1);ev.preventDefault();return}
   if(!c.done&&(k==='h'||k==='H'||k==='ㅗ')){useHint();return}
