@@ -365,7 +365,18 @@ function buildStage(i,x0){
 
 /* ───────── 소리 ───────── */
 let AC=null,muted=false;
-function initAudio(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume&&AC.resume()}catch(e){AC=null}}
+function initAudio(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume&&AC.resume()}catch(e){AC=null}loadSfx()}
+/* 효과음 파일: Endless Sky의 퍼블릭 도메인 효과음(CREDITS.md 참고). 불러오지 못하면 아래 합성음으로 대신한다 */
+const SFX_FILES={ok:['strike',.7],defeat:['explode-small',.45],boss:['explode-large',.6],bad:['bite',.8],hit:['crunch',.6],smash:['crunch',.75],item:['pulse',.5],win:['magic',.6]};
+const BUF={};let sfxLoading=false;
+function loadSfx(){
+ if(sfxLoading||!AC)return;sfxLoading=true;
+ for(const [k,[f]] of Object.entries(SFX_FILES))fetch(`assets/sfx/${f}.mp3`).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>AC.decodeAudioData(b)).then(d=>{BUF[k]=d}).catch(()=>{});
+}
+function playBuf(n){
+ const b=BUF[n];if(!b||!AC||muted)return false;
+ try{const s=AC.createBufferSource(),g=AC.createGain();s.buffer=b;g.gain.value=SFX_FILES[n][1];s.connect(g).connect(AC.destination);s.start();return true}catch(e){return false}
+}
 function tone(f,d,type='sine',vol=.14,slide){
  if(!AC||muted)return;
  try{const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t);
@@ -373,6 +384,7 @@ function tone(f,d,type='sine',vol=.14,slide){
  o.connect(g).connect(AC.destination);o.start(t);o.stop(t+d)}catch(e){}
 }
 function sfx(n){
+ if(playBuf(n))return;
  if(n==='ok'){tone(660,.14,'triangle');setTimeout(()=>tone(990,.22,'triangle'),90)}
  else if(n==='bad'){tone(200,.4,'sawtooth',.12,60)}
  else if(n==='hit'){tone(140,.18,'square',.08,70)}
@@ -489,7 +501,7 @@ function answer(i){
   const bonus=G.combo>=3?Math.min(25,(G.combo-2)*5):0;c.gain=Math.round((L.pts+bonus)*C.scoreMul);G.score+=c.gain;
   P.attack=.45;sfx('ok');
   if(e.boss){e.hp--;e.hit=.5;if(e.hp<=0)e.dying=1}else e.dying=.6;
-  setTimeout(()=>burst(e.x-G.cam,GROUND-(e.boss?80:50),'#141218',e.boss?40:24),120);
+  setTimeout(()=>{burst(e.x-G.cam,GROUND-(e.boss?80:50),'#141218',e.boss?40:24);sfx(e.boss&&e.hp<=0?'boss':'defeat')},120);
   floater(`+${c.gain}`,'#e9b949',e.x-G.cam,GROUND-(e.boss?230:150),34);
  }else{
   G.combo=0;G.wrong.push(c.q);e.lunge=.5;sfx('bad');
