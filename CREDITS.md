@@ -17,3 +17,7 @@ Endless Sky의 `copyright` 파일에 따르면 아래 파일은 모두 **퍼블�
 | `magic.mp3` | `sounds/magic weapon.wav` | 원정 완료 |
 
 Endless Sky의 코드(GPL-3.0)와 그림(대부분 CC-BY-SA)은 가져오지 않았습니다.
+
+## 초상화 (`assets/portraits/`)
+
+저장소 주인이 제공한 캐릭터·몬스터 콘셉트 이미지에서 주인공(검객·술사·궁수)과 보스(요마·용·귀혼·늑대괴수·거대거미) 칸을 잘라 썼습니다.
