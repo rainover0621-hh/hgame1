@@ -173,6 +173,9 @@ th{color:var(--muted);font-weight:400}
 .fx.good{background:rgba(58,168,147,.22);color:#86e3cc}.fx.bad{background:rgba(224,83,58,.22);color:#ffa18e}.fx.risk{background:rgba(233,185,73,.18);color:var(--gold)}
 .journey{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13px}
 .journey li{background:var(--ink-3);border-radius:8px;padding:8px 10px}
+.send{display:flex;flex-wrap:wrap;gap:8px}
+.send input{flex:1 1 120px;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--ink-3);color:var(--text);font:inherit}
+.send input:focus{outline:2px solid var(--gold)}
 
 /* 캐릭터 고르기 */
 .chars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
@@ -664,17 +667,32 @@ function drawBullets(){
   cx.fillStyle='#1b1a22';cx.font='700 13px "Noto Serif KR",serif';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(b.ch,b.x,b.y+1);cx.textBaseline='alphabetic';
  }
 }
+/* ───────── 결과 보내기 ─────────
+   선생님이 만든 구글 Apps Script 웹 앱 주소를 넣으면, 결과 화면에 '선생님께 결과 보내기'가 나타난다.
+   만드는 방법은 docs/결과수집.md. 비워 두면 보내기 기능이 꺼진다. */
+const RESULT_URL='';
+function sendResult(btn){
+ const name=$('#rName').value.trim(),sid=$('#rSid').value.trim(),msg=$('#rMsg');
+ if(!name){msg.textContent='이름을 적어 주세요.';$('#rName').focus();return}
+ const C=CH(),body={name,sid,char:`${C.role} ${C.name}`,score:G.score,correct:G.correct,total:G.total,
+  acc:G.total?Math.round(G.correct/G.total*100):0,stage:`${STAGES[G.stage].num} ${STAGES[G.stage].name}`,won:!!(G.won||G.state==='win'),
+  combo:G.maxCombo,hp:G.hp,journey:G.journey.join(' / '),wrong:G.wrong.map(q=>q.h||q.q).join(' / ')};
+ btn.disabled=true;msg.textContent='보내는 중…';
+ fetch(RESULT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)})
+  .then(()=>{msg.textContent='보냈어요. 선생님 시트에 기록됩니다.';G.sent=true})
+  .catch(()=>{btn.disabled=false;msg.textContent='보내지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.'});
+}
 /* ───────── 이야기: 학생이 과거로 환생해 한문으로 요괴를 물리친다 ───────── */
 /* 대사의 {name}은 고른 주인공 이름, {name은}처럼 쓰면 받침에 맞는 조사가 붙는다.
    선택지 fx: hp 회복/감소 · full 완전 회복 · maxhp 최대 HP · shield 부적 · hint 붓 · score 점수 · time 제한 시간 · dmg 받는 피해 배율 · mul 점수 배율
    quiz가 있는 선택지는 한문 문제를 맞히면 win, 틀리면 lose */
 const NPC={
  hun:{name:'훈장',han:'訓',col:'#2f8f80',sub:'도화 마을 서당'},
- jumo:{name:'주모',han:'酒',col:'#c47b2c',sub:'고갯마루 주막'},
- dosa:{name:'떠돌이 도사',han:'道',col:'#5a6ab8',sub:'대숲 끝 갈림길'},
- seonbi:{name:'선비의 혼',han:'魂',col:'#6a5a8a',sub:'귀곡에 묶여 있던 영혼'},
- jang:{name:'장수',han:'將',col:'#a8322a',sub:'요마성에 갇혀 있던 장수'},
- yong:{name:'용',han:'龍',col:'#2f6aa0',sub:'창해 용궁의 주인'},
+ jumo:{name:'주모',han:'酒',col:'#c47b2c',sub:'고갯마루 주막',img:'jumo'},
+ dosa:{name:'떠돌이 도사',han:'道',col:'#5a6ab8',sub:'대숲 끝 갈림길',img:'dosa'},
+ seonbi:{name:'선비의 혼',han:'魂',col:'#6a5a8a',sub:'귀곡에 묶여 있던 영혼',img:'seonbi'},
+ jang:{name:'장수',han:'將',col:'#a8322a',sub:'요마성에 갇혀 있던 장수',img:'jang'},
+ yong:{name:'용',han:'龍',col:'#2f6aa0',sub:'창해 용궁의 주인',img:'dragon'},
 };
 const STORY={
  prologue:{lines:[
@@ -752,7 +770,8 @@ function startStory(sc,done){G.state='story';P.slide=0;setMovePad(false);G.story
 function speaker(who){
  if(who==='hero'){const C=CH();return`<div class="who"><img class="face" src="assets/portraits/${C.art}.jpg" alt=""><div class="nm">${C.name}<small>${C.age}세 ${C.title} · 현대에서 온 학생</small></div></div>`}
  if(who==='nar')return'';
- const N=NPC[who];return`<div class="who"><div class="badge" style="background:${N.col}">${N.han}</div><div class="nm">${N.name}<small>${N.sub}</small></div></div>`}
+ const N=NPC[who],pic=N.img?`<img class="face" src="assets/portraits/${N.img}.jpg" alt="" style="border-color:${N.col}">`:`<div class="badge" style="background:${N.col}">${N.han}</div>`;
+ return`<div class="who">${pic}<div class="nm">${N.name}<small>${N.sub}</small></div></div>`}
 function renderStory(){
  const st=G.story,sc=st.sc;
  if(st.phase==='lines'){
@@ -883,6 +902,7 @@ function showResult(){
   </dl>
   <div class="row"><button class="go" id="retryBtn" data-act="retry">다시 도전</button><button class="ghost" id="homeBtn" data-act="home">주인공 바꾸기</button>
   <span class="best">${newBest?'새 최고 기록!':`최고 기록 ${Math.max(prevBest,G.score)}점`}</span></div>
+  ${RESULT_URL?`<h2>선생님께 결과 보내기</h2><div class="send"><input id="rName" maxlength="20" placeholder="이름" autocomplete="off"><input id="rSid" maxlength="12" placeholder="반-번호 (예: 2-15)" autocomplete="off"><button class="go" id="rBtn" data-act="send">보내기</button></div><p class="keys" id="rMsg">점수, 정답 수, 선택한 길, 틀린 문제가 선생님의 구글 시트에 기록됩니다.</p>`:''}
   ${G.journey.length?`<h2>여정의 선택</h2><ul class="journey">${G.journey.map(j=>`<li>${esc(j)}</li>`).join('')}</ul>`:''}
   <h2>오답 노트 (${G.wrong.length})</h2>
   ${G.wrong.length?`<ul class="notes">${G.wrong.map(q=>`<li><div class="nh">${esc(q.h||'—')}</div><div><p class="nq">[${esc(q.c)}] ${esc(q.q)}</p><p class="na">정답: ${esc(q.o[0])}</p><p class="ne">${esc(q.e)}</p></div></li>`).join('')}</ul>`
@@ -2070,6 +2090,7 @@ panel.addEventListener('click',ev=>{
  const a=b.dataset.act;initAudio();
  if(a==='start'||a==='retry')start();else if(a==='opt')answer(+b.dataset.i);else if(a==='hint')useHint();
  else if(a==='next')next();else if(a==='home')toTitle();else if(a==='cat')toggleCat(b);else if(a==='char')pickChar(b);
+ else if(a==='send')sendResult(b);
  else if(a==='snext'||a==='sdone')storyNext();else if(a==='sskip')storySkip();else if(a==='schoose')storyChoose(+b.dataset.i);else if(a==='sopt')storyAnswer(+b.dataset.i);
 });
 addEventListener('keydown',ev=>{
