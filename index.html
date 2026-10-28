@@ -351,8 +351,8 @@ const shade=(c,t)=>t<0?mix(c,'#000000',-t):mix(c,'#ffffff',t);
 const savedChar=store.get('hanmun-char');
 const G={state:'title',stage:0,cam:0,speed:0,t:0,hp:100,maxHp:100,score:0,combo:0,maxCombo:0,correct:0,total:0,
  wrong:[],inv:{shield:0,hint:0},ents:[],parts:[],floats:[],cur:null,banner:null,shake:0,flash:0,fade:0,
- used:new Set(),cats:new Set(CATS),stDone:0,stTotal:0,bullets:[],dodge:null,char:CHARS[savedChar]?savedChar:'brain'};
-const P={y:0,vy:0,onGround:true,jumps:0,phase:0,attack:0,hurt:0,knock:0,shieldFx:0,slide:0,dx:0,inv:0,mvL:false,mvR:false};
+ used:new Set(),cats:new Set(CATS),stDone:0,stTotal:0,bullets:[],dodge:null,hitstop:0,zoom:1,char:CHARS[savedChar]?savedChar:'brain'};
+const P={y:0,vy:0,onGround:true,jumps:0,phase:0,attack:0,hurt:0,knock:0,shieldFx:0,slide:0,dx:0,inv:0,mvL:false,mvR:false,sq:0,vx:0,trail:[],step:0};
 const CH=()=>CHARS[G.char];
 
 function pick(lvls){
@@ -442,8 +442,8 @@ function damage(n,fromQuiz){
 function jump(){
  if(G.state!=='run'&&G.state!=='dodge')return;
  P.slide=0;
- if(P.onGround){P.onGround=false;P.vy=-900;P.jumps=CH().jumps-1;sfx('jump')}
- else if(P.jumps>0){P.jumps--;P.vy=-820;sfx('jump2');burst(PX,GROUND+P.y,'#ffffff',8,.4)}
+ if(P.onGround){P.onGround=false;P.vy=-900;P.jumps=CH().jumps-1;P.sq=-.22;sfx('jump')}
+ else if(P.jumps>0){P.jumps--;P.vy=-820;P.sq=-.2;sfx('jump2');burst(PX,GROUND+P.y,'#ffffff',8,.4)}
 }
 function slide(){
  if(G.state!=='run'&&G.state!=='dodge')return;
@@ -528,7 +528,7 @@ function answer(i){
  if(ok){
   G.correct++;G.combo++;G.maxCombo=Math.max(G.maxCombo,G.combo);
   const bonus=G.combo>=3?Math.min(25,(G.combo-2)*5):0;c.gain=Math.round((L.pts+bonus)*C.scoreMul);G.score+=c.gain;
-  P.attack=.45;sfx('ok');
+  P.attack=.45;sfx('ok');setTimeout(()=>{G.hitstop=.09;G.zoom=1.06},140);
   if(e.boss){e.hp--;e.hit=.5;if(e.hp<=0)e.dying=1}else e.dying=.6;
   setTimeout(()=>{burst(e.x-G.cam,GROUND-(e.boss?80:50),'#141218',e.boss?40:24);sfx(e.boss&&e.hp<=0?'boss':'defeat')},120);
   floater(`+${c.gain}`,'#e9b949',e.x-G.cam,GROUND-(e.boss?230:150),34);
@@ -579,7 +579,7 @@ const PATS={
  aimed:{every:1.1,fire(d,bx,by,px,py,v){const a0=Math.atan2(py-by,px-bx);for(let i=-2;i<=2;i++){const a=a0+i*.2;shoot(bx,by,Math.cos(a)*240*v,Math.sin(a)*240*v)}}},
  lines:{every:1.9,fire(d,bx,by,px,py,v){const low=rand()<.5;for(let i=0;i<3;i++)shoot(bx+i*34,low?GROUND-18:GROUND-100,-320*v,0)}},
  rain:{every:.34,fire(d,bx,by,px,py,v){shoot(40+rand()*480,-20,0,60,420*v,1)}},
- spiral:{every:.15,fire(d,bx,by,px,py,v){d.ang+=.45;for(const o of[0,Math.PI]){const a=d.ang+o;shoot(bx,by,Math.cos(a)*160*v,Math.sin(a)*160*v)}}},
+ spiral:{every:.15,fire(d,bx,by,px,py,v){d.ang+=.35;const a0=Math.atan2(py-by,px-bx);for(const o of[-.3,.3]){const a=a0+Math.sin(d.ang)*.9+o;shoot(bx,by,Math.cos(a)*175*v,Math.sin(a)*175*v)}}},
 };
 function updateDodge(dt){
  const d=G.dodge,e=d.e,B=d.B,sc=1.05;d.t+=dt;
@@ -732,12 +732,18 @@ function update(dt){
  G.speed+=(target-G.speed)*Math.min(1,dt*(target>G.speed?2.5:8));
  if(G.speed<1&&target===0)G.speed=0;
  G.cam+=G.speed*dt;P.phase+=dt*G.speed/30;
- if(!P.onGround){P.vy+=2300*dt;P.y+=P.vy*dt;if(P.y>=0){P.y=0;P.vy=0;P.onGround=true}}
+ if(!P.onGround){P.vy+=2300*dt;P.y+=P.vy*dt;if(P.y>=0){P.y=0;P.vy=0;P.onGround=true;P.sq=.3;for(let i=0;i<8;i++)G.parts.push({x:PX+P.dx+(rand()-.5)*30,y:GROUND+4,vx:(rand()-.5)*220,vy:-40-rand()*90,r:2+rand()*3,life:.4,col:'rgba(170,140,100,.75)'})}}
+ P.sq+=(0-P.sq)*Math.min(1,dt*11);
+ const pdx=P.dx;
  P.attack=Math.max(0,P.attack-dt);P.hurt=Math.max(0,P.hurt-dt);P.knock=Math.max(0,P.knock-dt*2.4);P.shieldFx=Math.max(0,P.shieldFx-dt);
  if(P.onGround)P.slide=Math.max(0,P.slide-dt);
  P.inv=Math.max(0,P.inv-dt);
  if(G.state==='dodge')P.dx=Math.max(-140,Math.min(280,P.dx+((P.mvR?1:0)-(P.mvL?1:0))*320*dt));
  else P.dx+=(0-P.dx)*Math.min(1,dt*4);
+ P.vx=dt>0?(P.dx-pdx)/dt:0;
+ P.trail.unshift({x:PX+P.dx-P.knock*28,y:GROUND+P.y});if(P.trail.length>6)P.trail.pop();
+ if(P.onGround&&P.slide<=0&&(G.speed>120||Math.abs(P.vx)>60)){const st=Math.floor(P.phase/Math.PI);if(st!==P.step){P.step=st;G.parts.push({x:PX+P.dx-8,y:GROUND+3,vx:-60-rand()*60,vy:-30-rand()*40,r:2+rand()*2.5,life:.35,col:'rgba(170,140,100,.6)'})}}
+ G.zoom=1+(G.zoom-1)*Math.exp(-dt*7);
  G.shake=Math.max(0,G.shake-dt);G.flash=Math.max(0,G.flash-dt);G.fade=Math.max(0,G.fade-dt*1.4);
  if(G.banner){G.banner.t-=dt;if(G.banner.t<=0)G.banner=null}
  const moving=G.state==='run';
@@ -779,7 +785,30 @@ function poly(c,pts){c.beginPath();c.moveTo(pts[0],pts[1]);for(let i=2;i<pts.len
 function lgrad(c,x0,y0,x1,y1,stops){const g=c.createLinearGradient(x0,y0,x1,y1);stops.forEach(([o,col])=>g.addColorStop(o,col));return g}
 function sphere(c,x,y,r,col){const g=c.createRadialGradient(x-r*.35,y-r*.4,r*.1,x,y,r);g.addColorStop(0,shade(col,.35));g.addColorStop(.55,col);g.addColorStop(1,shade(col,-.35));return g}
 const lg=(...a)=>lgrad(...a),sph=(...a)=>sphere(...a);
-function shadow(c,x,y,rx,a=.25){const g=c.createRadialGradient(x,y,0,x,y,rx);g.addColorStop(0,`rgba(0,0,0,${a})`);g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;ell(c,x,y,rx,rx*.24);c.fill()}
+/* 입체 효과: 그림을 화면 밖 캔버스에 따로 그린 뒤, 먹선 테두리 · 오른쪽 위 가장자리 빛 · 발밑 그늘 · 번쩍임을 입혀 붙인다 */
+const FXC={};let FX_ON=false;
+function fxDraw(x,y,alpha,draw,opt={}){
+ const w=opt.w||300,h=opt.h||270,ax=opt.ax??.5,ay=opt.ay??.86,k=Math.min(1.25,cv.width/W),pw=Math.ceil(w*k),ph=Math.ceil(h*k);
+ let set=FXC[w+'x'+h];if(!set)set=FXC[w+'x'+h]={a:document.createElement('canvas'),b:document.createElement('canvas')};
+ for(const c of[set.a,set.b])if(c.width!==pw||c.height!==ph){c.width=pw;c.height=ph}
+ const a=set.a.getContext('2d'),b=set.b.getContext('2d');
+ a.setTransform(1,0,0,1,0,0);a.globalCompositeOperation='source-over';a.globalAlpha=1;a.clearRect(0,0,pw,ph);
+ a.setTransform(k,0,0,k,pw*ax,ph*ay);FX_ON=true;draw(a);FX_ON=false;
+ a.setTransform(1,0,0,1,0,0);a.globalAlpha=1;a.shadowBlur=0;
+ a.globalCompositeOperation='source-atop';
+ const g=a.createLinearGradient(0,ph*.25,0,ph*ay);g.addColorStop(0,'rgba(255,244,225,.12)');g.addColorStop(.55,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(12,8,24,.42)');
+ a.fillStyle=g;a.fillRect(0,0,pw,ph);a.globalCompositeOperation='source-over';
+ const sil=col=>{b.setTransform(1,0,0,1,0,0);b.globalCompositeOperation='source-over';b.globalAlpha=1;b.clearRect(0,0,pw,ph);b.drawImage(set.a,0,0);b.globalCompositeOperation='source-in';b.fillStyle=col;b.fillRect(0,0,pw,ph);b.globalCompositeOperation='source-over'};
+ const ox=x-w*ax,oy=y-h*ay;
+ cx.save();cx.globalAlpha=alpha;
+ if(!opt.noInk){sil(opt.ink||'#140f1c');const o=1.6;for(const[dx,dy]of[[o,o],[-o,o],[o,-o],[-o,-o]])cx.drawImage(set.b,ox+dx,oy+dy,w,h)}
+ cx.drawImage(set.a,ox,oy,w,h);
+ sil(opt.rim||'#fff1d6');b.globalCompositeOperation='destination-out';b.drawImage(set.a,-3.2*k,3.2*k);b.globalCompositeOperation='source-over';
+ cx.globalAlpha=alpha*(opt.rimA??.5);cx.drawImage(set.b,ox,oy,w,h);
+ if(opt.flash>0){sil(opt.flashCol||'#ffffff');cx.globalAlpha=alpha*Math.min(1,opt.flash);cx.drawImage(set.b,ox,oy,w,h)}
+ cx.restore();
+}
+function shadow(c,x,y,rx,a=.25){if(FX_ON)return;const g=c.createRadialGradient(x,y,0,x,y,rx);g.addColorStop(0,`rgba(0,0,0,${a})`);g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;ell(c,x,y,rx,rx*.24);c.fill()}
 
 /* ───────── 모험가 그리기 (오른쪽을 바라보는 옆모습, 발끝 기준) ───────── */
 function leg(c,col,w,hx,th,kn,back,shoe,wrap){
@@ -930,12 +959,12 @@ function brush(c,k){c.save();c.scale(k,k);
 function drawPlayer(){
  const over=G.state==='over',C=CH();
  const px=PX+P.dx,x=px-P.knock*28,y=GROUND+P.y;
- shadow(cx,px,GROUND+4,34*(1+P.y/320),.32);
- cx.save();
- if((P.hurt>0&&Math.floor(P.hurt*18)%2===0)||(P.inv>0&&Math.floor(P.inv*14)%2===0))cx.globalAlpha=.5;
- cx.translate(x,y);cx.scale(C.scale,C.scale);
- drawHero(cx,G.char,{phase:P.phase,moving:(G.speed>10||Math.abs(P.mvR-P.mvL)&&G.state==='dodge')&&!over,air:!P.onGround,attack:P.attack/.45,hurt:P.hurt>.3||over,slide:P.slide>0&&!over,over,t:G.t});
- cx.restore();
+ shadow(cx,px,GROUND+4,34*(1+P.y/320)*(1+P.sq*.4),.32);
+ const o={phase:P.phase,moving:(G.speed>10||Math.abs(P.mvR-P.mvL)&&G.state==='dodge')&&!over,air:!P.onGround,attack:P.attack/.45,hurt:P.hurt>.3||over,slide:P.slide>0&&!over,over,t:G.t};
+ const sxs=C.scale*(1+P.sq*.5),sys=C.scale*(1-P.sq);
+ if(!over&&(!P.onGround||Math.abs(P.vx)>60||P.slide>0))P.trail.forEach((p,i)=>{if(i%2)return;cx.save();cx.globalAlpha=.16-i*.02;cx.translate(p.x,p.y);cx.scale(sxs,sys);drawHero(cx,G.char,o);cx.restore()});
+ const blink=P.inv>0&&Math.floor(P.inv*14)%2===0;
+ fxDraw(x,y,blink?.55:1,c=>{c.scale(sxs,sys);drawHero(c,G.char,o)},{w:P.attack>0?640:300,h:300,ax:P.attack>0?.3:.42,ay:.88,flash:P.hurt>0&&Math.floor(P.hurt*18)%2===0?.55:0,flashCol:'#ff4a3a'});
  if(P.slide>0&&P.onGround&&G.speed>10&&rand()<.5)G.parts.push({x:PX-10,y:GROUND+4,vx:-80-rand()*80,vy:-60-rand()*80,r:2+rand()*3,life:.35,col:'rgba(160,130,90,.8)'});
  if(P.attack>0&&C.art!=='archer'){const k=1-P.attack/.45;cx.save();cx.globalAlpha=Math.sin(k*Math.PI)*.85;cx.strokeStyle=C.art==='sword'?'#eef3fb':'#6fc8ff';cx.lineCap='round';
   cx.lineWidth=16*(1-k)+3;cx.beginPath();cx.arc(px+24,GROUND-80+P.y,74,-1.9,-1.9+k*2.6);cx.stroke();cx.restore()}
@@ -1356,22 +1385,22 @@ const MOBDRAW={
  },
 };
 /* 그림 파일이 있는 요괴는 그림으로 그린다 (assets/mobs/{id}.png, 배경 투명). h는 화면에서의 키. 파일이 없으면 코드 그림 */
-const MOBSPR={spider:{h:205}};
+const MOBSPR={};
 function mobSprite(id){const S=MOBSPR[id];if(!S)return null;if(!S.img){S.img=new Image();S.img.src=`assets/mobs/${id}.png`}return S.img.complete&&S.img.naturalWidth?S.img:null}
-const MOBH={wisp:130,toad:100,fox:112,shadow:150,jiangshi:135,imugi:128,bulgasari:122,wasp:120,plant:150,boar:104,goblin:150,golem:140,firebird:150,spider:198,wolf:156,ghost:200,demon:244,dragon:230};
+const MOBH={wisp:130,toad:100,fox:112,shadow:150,jiangshi:135,imugi:128,bulgasari:122,wasp:120,plant:150,boar:104,goblin:150,golem:140,firebird:150,spider:150,wolf:156,ghost:200,demon:244,dragon:230};
 function drawEnemy(e){
  const sx=e.x-G.cam+(e.back||0);if(sx<-200||sx>W+220)return;
  const boss=!!e.boss,base=boss?1.05:.9;let a=1,sc=base;
  if(e.dying>0){const k=e.dying/(boss?1:.6);a=k;sc=base*(.4+.6*k)}
- let off=0;if(e.lunge>0){const k=1-e.lunge/.5;off=-Math.sin(k*Math.PI)*(boss?130:115)}
- const jx=e.hit>0?Math.sin(e.hit*70)*7:0;
- shadow(cx,sx+off,GROUND+4,46*sc,.3*a);
- cx.save();cx.globalAlpha=a;cx.translate(sx+off+jx,GROUND);cx.scale(sc,sc);
+ let off=0,lean=0;
+ if(e.lunge>0){const k=1-e.lunge/.5;if(k<.35){off=18*k/.35;lean=.12*k/.35}else{const q=Math.sin((k-.35)/.65*Math.PI);off=-q*(boss?130:115);lean=-.16*q}}
+ const hk=e.hit>0?e.hit/.5:0,jx=hk*16+(hk?Math.sin(e.hit*70)*4:0),br=Math.sin(G.t*3+e.x*.013)*.03,X=sx+off+jx;
+ shadow(cx,X,GROUND+4,46*sc*(1-br*2),.3*a);
  const spr=mobSprite(e.mob);
- if(spr){const h=MOBSPR[e.mob].h,w=h*spr.naturalWidth/spr.naturalHeight,br=Math.sin(G.t*2.4)*.025;cx.drawImage(spr,-w/2,-h*(1+br)+8,w,h*(1+br))}
- else MOBDRAW[e.mob](cx,G.t+(e.x%7));
- cx.restore();
- if(e.hit>0||e.dying>0){cx.save();cx.globalAlpha=Math.min(.6,(e.hit||e.dying)*1.2);cx.fillStyle='#fff';ell(cx,sx+off,GROUND-60*sc,60*sc,70*sc);cx.fill();cx.restore()}
+ fxDraw(X,GROUND,a,c=>{c.rotate(lean);c.scale(sc*(1+hk*.18-br*.5),sc*(1-hk*.12+br));
+  if(spr){const h=MOBSPR[e.mob].h,w=h*spr.naturalWidth/spr.naturalHeight;c.drawImage(spr,-w/2,-h+8,w,h)}
+  else MOBDRAW[e.mob](c,G.t+(e.x%7))},
+  {noInk:e.mob==='wisp'||e.mob==='firebird',flash:Math.max(hk,e.dying>0?e.dying:0)*.85,w:boss?380:300,h:boss?330:270});
  if(!(e.dying>0)&&G.state!=='dodge'){
   const M=MOBS[e.mob],label=boss?`${M.name} ${M.han}`:`${M.name} · ${e.q.c}`,ty=GROUND-MOBH[e.mob]*sc-24;
   cx.font='15px "Gowun Dodum",sans-serif';const tw=cx.measureText(label).width+22;
@@ -1495,7 +1524,10 @@ function render(){
  const S=STAGES[G.stage];
  cx.save();
  if(G.shake>0){const m=G.shake*16;cx.translate((rand()-.5)*m,(rand()-.5)*m)}
+ if(G.zoom>1.001){const zx=PX+120,zy=GROUND-80;cx.translate(zx,zy);cx.scale(G.zoom,G.zoom);cx.translate(-zx,-zy)}
  drawBG(S);
+ if(G.speed>150){cx.save();cx.strokeStyle='rgba(255,255,255,.14)';cx.lineWidth=2;cx.lineCap='round';cx.beginPath();
+  for(let i=0;i<7;i++){const x=((i*263-G.t*1100)%1300+1300)%1300-160,y=110+hash(i)*300;cx.moveTo(x,y);cx.lineTo(x+70+hash(i+3)*60,y)}cx.stroke();cx.restore()}
  for(const e of G.ents)if(e.kind==='obs'&&!OBS[e.type].air)drawObs(e);
  for(const e of G.ents)if(e.kind==='item')drawItem(e);
  for(const e of G.ents)if(e.kind==='enemy')drawEnemy(e);
@@ -1546,7 +1578,7 @@ if(document.fonts&&document.fonts.load){['21px "Noto Serif KR"','66px "Nanum Bru
 G.hp=G.maxHp=CH().hp;
 showTitle();
 let last=performance.now();
-function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);render();requestAnimationFrame(frame)}
+function frame(now){let dt=Math.min(.05,(now-last)/1000);last=now;if(G.hitstop>0){G.hitstop-=dt;dt*=.06}update(dt);render();requestAnimationFrame(frame)}
 requestAnimationFrame(frame);
 </script>
 </body>
