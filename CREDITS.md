@@ -29,3 +29,19 @@ Endless Sky의 코드(GPL-3.0)와 그림(대부분 CC-BY-SA)은 가져오지 않
 ## QR 코드 라이브러리
 
 - `assets/lib/qrcode.js` — QR Code Generator for JavaScript, Copyright (c) 2009 Kazuhiko Arase, MIT 라이선스. 교사용 배포 설정(teacher.html)에서 QR을 그릴 때 쓴다.
+
+## 배경음악 (assets/bgm)
+
+선생님이 OpenGameArt.org에서 CC0(퍼블릭 도메인)으로 골라 내려받은 곡이다. 게임에 맞게 음량만 고르게 맞추고(-18 LUFS) mp3 96kbps로 바꿨다.
+작가 이름이 확실하지 않은 곡은 OpenGameArt.org의 해당 곡 페이지에서 확인할 것.
+
+| 파일 | 원곡 | 쓰는 곳 |
+|---|---|---|
+| title.mp3 | Town Theme | 첫 화면, 이야기 장면 |
+| stage1.mp3 | Melody Vollen (Tozan) | 제1장 |
+| stage2.mp3 | Boss_Koto (G_P) | 제2장 |
+| stage3.mp3 | Prepare Your Swords | 제3장 |
+| stage4.mp3 | S31 - Night Prowler | 제4장 |
+| stage5.mp3 | Victory 1 | 제5장 |
+| boss.mp3 | Battle Theme A (cynicmusic) | 보스전 |
+| ending.mp3 | Gone Fishin' (memoraphile) | 원정 완료 |

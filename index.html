@@ -930,7 +930,44 @@ function buildStage(i,x0){
 
 /* ───────── 소리 ───────── */
 let AC=null,muted=false;
-function initAudio(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume&&AC.resume()}catch(e){AC=null}loadSfx()}
+function initAudio(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume&&AC.resume()}catch(e){AC=null}loadSfx();bgmUpdate(true)}
+/* 배경음악: 장면마다 한 곡을 반복 재생하고, 바뀔 때 1초 동안 겹쳐 넘긴다 (CREDITS.md 참고, 모두 CC0) */
+const BGM={title:['title',.55],stage0:['stage1',.5],stage1:['stage2',.5],stage2:['stage3',.5],stage3:['stage4',.5],stage4:['stage5',.5],boss:['boss',.55],end:['ending',.55]};
+const bgmCh={};let bgmKey=null;
+function bgmWant(){
+ const st=G.state;
+ if(st==='title')return'title';
+ if(st==='over')return null;
+ if(G.won||st==='win')return'end';
+ if(st==='story')return'title';
+ if(st==='dodge'||(G.cur&&G.cur.e&&G.cur.e.boss))return'boss';
+ if(G.ents.some(e=>e.kind==='enemy'&&e.boss&&!e.done&&e.x-G.cam<W+40))return'boss';
+ return'stage'+G.stage;
+}
+function bgmCh_(k){
+ if(bgmCh[k])return bgmCh[k];
+ const a=new Audio(`assets/bgm/${BGM[k][0]}.mp3`);a.loop=true;a.preload='auto';a.crossOrigin='anonymous';
+ const ch={a,g:null};
+ try{const src=AC.createMediaElementSource(a);ch.g=AC.createGain();ch.g.gain.value=0;src.connect(ch.g).connect(AC.destination)}catch(e){ch.g=null;a.volume=0}
+ return bgmCh[k]=ch;
+}
+function bgmFade(ch,to,sec){
+ if(ch.g){const t=AC.currentTime;ch.g.gain.cancelScheduledValues(t);ch.g.gain.setValueAtTime(ch.g.gain.value,t);ch.g.gain.linearRampToValueAtTime(to,t+sec)}
+ else ch.a.volume=Math.max(0,Math.min(1,to));
+}
+function bgmUpdate(force){
+ if(!AC)return;
+ const want=muted?null:bgmWant();
+ if(want===bgmKey&&!force)return;
+ if(want===bgmKey&&want&&bgmCh[want]&&!bgmCh[want].a.paused)return;
+ const old=bgmKey&&bgmCh[bgmKey];bgmKey=want;
+ if(old){const oa=old.a;bgmFade(old,0,1);setTimeout(()=>{if(bgmCh[bgmKey]!==old)oa.pause()},1100)}
+ if(!want)return;
+ const ch=bgmCh_(want);
+ if(want!=='title'&&ch.a.paused)ch.a.currentTime=0; /* 첫 화면 · 이야기 곡은 이어서, 나머지는 처음부터 */
+ const p=ch.a.play();if(p&&p.catch)p.catch(()=>{});
+ bgmFade(ch,BGM[want][1],1);
+}
 /* 효과음 파일: Endless Sky의 퍼블릭 도메인 효과음(CREDITS.md 참고). 불러오지 못하면 아래 합성음으로 대신한다 */
 const SFX_FILES={ok:['strike',.7],defeat:['explode-small',.45],boss:['explode-large',.6],bad:['bite',.8],hit:['crunch',.6],smash:['crunch',.75],item:['pulse',.5],win:['magic',.6]};
 const BUF={};let sfxLoading=false;
@@ -2661,7 +2698,7 @@ for(const [id,key] of [['leftBtn','mvL'],['rightBtn','mvR']]){const b=$('#'+id);
 cv.addEventListener('pointerdown',()=>{initAudio();jump()});
 $('#jumpBtn').addEventListener('pointerdown',ev=>{ev.preventDefault();initAudio();jump()});
 $('#slideBtn').addEventListener('pointerdown',ev=>{ev.preventDefault();initAudio();slide()});
-$('#mute').addEventListener('click',ev=>{muted=!muted;ev.currentTarget.setAttribute('aria-pressed',muted);ev.currentTarget.setAttribute('aria-label',muted?'소리 켜기':'소리 끄기')});
+$('#mute').addEventListener('click',ev=>{muted=!muted;initAudio();bgmUpdate();ev.currentTarget.setAttribute('aria-pressed',muted);ev.currentTarget.setAttribute('aria-label',muted?'소리 켜기':'소리 끄기')});
 
 if(document.fonts&&document.fonts.load){['21px "Noto Serif KR"','66px "Nanum Brush Script"','15px "Noto Sans KR"'].forEach(f=>document.fonts.load(f,'藥蔘符筆 한문 원정기').catch(()=>{}))}
 G.hp=G.maxHp=CH().hp;
@@ -2675,7 +2712,8 @@ function perfTick(ms){
   if(avg>21&&(G.state==='run'||G.state==='dodge')){PERF.slow++;
    if(!LOWFX){LOWFX=true}else if(QUAL>.55){QUAL=Math.max(.55,QUAL-.15);resize()}}}
 }
-function frame(now){perfTick(now-last);let dt=Math.min(.05,(now-last)/1000);last=now;if(G.hitstop>0){G.hitstop-=dt;dt*=.06}update(dt);render();requestAnimationFrame(frame)}
+let bgmT=0;
+function frame(now){perfTick(now-last);if((bgmT+=1)%15===0)bgmUpdate();let dt=Math.min(.05,(now-last)/1000);last=now;if(G.hitstop>0){G.hitstop-=dt;dt*=.06}update(dt);render();requestAnimationFrame(frame)}
 requestAnimationFrame(frame);
 </script>
 </body>
