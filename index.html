@@ -1446,7 +1446,8 @@ const PATS={
  lines:{every:1.9,fire(d,bx,by,px,py,v){const low=d.SP.pat.includes('aimed')||rand()<.5;for(let i=0;i<3;i++)shoot(bx+i*26,low?GROUND-18:GROUND-100,-320*v,0)}},
  /* 글자비: 땅에 붉은 표시가 먼저 보인다. 주인공 바로 위에는 덜 떨어지게(한 번 다시 고름) */
  rain:{every:.6,fire(d,bx,by,px,py,v){let x=40+rand()*480;if(Math.abs(x-px)<45)x=40+rand()*480;shoot(x,-20,0,60,420*v,1)}},
- spiral:{every:.15,fire(d,bx,by,px,py,v){d.ang+=.35;const a0=Math.atan2(py-by,px-bx);for(const o of[-.3,.3]){const a=a0+Math.sin(d.ang)*.9+o;shoot(bx,by,Math.cos(a)*175*v,Math.sin(a)*175*v)}}},
+ /* 회오리탄: 주인공을 겨누지 않고 위아래로 쓸며 날아온다. 높이를 보고 점프 · 숙이기 · 좌우로 피한다 */
+ spiral:{every:.36,fire(d,bx,by,px,py,v){d.ang+=.5;const a=Math.PI+Math.sin(d.ang)*.42;shoot(bx,by,Math.cos(a)*175*v,Math.sin(a)*175*v)}},
 };
 function updateDodge(dt){
  const d=G.dodge,e=d.e,B=d.B,sc=1.05;d.t+=dt;
