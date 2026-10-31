@@ -25,3 +25,7 @@ Endless Sky의 코드(GPL-3.0)와 그림(대부분 CC-BY-SA)은 가져오지 않
 ## 요괴 그림 (`assets/mobs/`)
 
 저장소 주인이 제공한 그림을 넣는 폴더입니다. 파일이 있는 요괴는 게임 속에서 그 그림으로, 없는 요괴는 코드로 그린 그림으로 나옵니다. 지금은 비어 있습니다.
+
+## QR 코드 라이브러리
+
+- `assets/lib/qrcode.js` — QR Code Generator for JavaScript, Copyright (c) 2009 Kazuhiko Arase, MIT 라이선스. 교사용 배포 설정(teacher.html)에서 QR을 그릴 때 쓴다.

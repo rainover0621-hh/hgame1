@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>한문 요괴 원정기 배포 설정</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700;900&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* 레이아웃: 왼쪽 범위 고르기, 오른쪽 링크와 QR (좁으면 한 줄로) */
+:root{--bg:#f3f5f3;--paper:#fff;--ink:#1d2a27;--muted:#5f6f6a;--line:#d6dedb;--jade:#1f7a6a;--jade-soft:#e1f0ec;--warn:#b23a2b;
+ --serif:"Noto Serif KR",serif;--sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#121816;--paper:#1a2220;--ink:#e3ebe8;--muted:#93a39e;--line:#2d3a37;--jade:#4fc0a8;--jade-soft:#1d3530;--warn:#e0705f;color-scheme:dark}}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.6}
+.wrap{max-width:1000px;margin:0 auto;padding:28px 16px 60px}
+h1{font-family:var(--serif);font-size:clamp(24px,4.5vw,32px);margin:0}
+.lede{color:var(--muted);margin:6px 0 22px;max-width:62ch}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+@media (max-width:760px){.grid{grid-template-columns:minmax(0,1fr)}}
+section{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:18px}
+h2{font-size:15px;margin:0 0 10px;display:flex;gap:8px;align-items:center}
+h2 + h2,.sub{margin-top:18px}
+.tools{margin-left:auto;display:flex;gap:6px}
+.tools button,.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:6px;padding:3px 10px;cursor:pointer}
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px}
+label.opt{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+label.opt:has(input:checked){border-color:var(--jade);background:var(--jade-soft)}
+label.opt small{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
+.side{position:sticky;top:12px;display:grid;gap:12px}
+.n{font-size:28px;font-weight:600;font-variant-numeric:tabular-nums}
+.n.zero{color:var(--warn)}
+#qr{background:#fff;padding:6px;border-radius:10px;justify-self:center;line-height:0}
+#qr img,#qr canvas{width:240px;height:240px}
+.url{font-size:12px;word-break:break-all;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px;font-family:ui-monospace,monospace}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn.main{background:var(--jade);border-color:var(--jade);color:var(--paper);font-weight:600;padding:6px 14px}
+.note{font-size:13px;color:var(--muted)}
+.msg{font-size:13px;color:var(--jade);min-height:1.2em}
+:focus-visible{outline:2px solid var(--jade);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>한문 요괴 원정기 배포 설정</h1>
+<p class="lede">출제할 단원과 문제 유형을 고르면 학생용 링크와 QR이 바로 만들어진다. 이 링크로 들어온 학생은 정한 범위로만 문제를 푼다.</p>
+<div class="grid">
+ <section>
+  <h2>교과서 단원 <span class="tools"><button type="button" data-all="u">전체</button><button type="button" data-none="u">해제</button></span></h2>
+  <div class="list" id="units"><p class="note">불러오는 중…</p></div>
+  <h2 class="sub">문제 유형 <span class="tools"><button type="button" data-all="c">전체</button><button type="button" data-none="c">해제</button></span></h2>
+  <div class="list" id="cats"></div>
+  <h2 class="sub">학생 화면</h2>
+  <label class="opt"><input type="checkbox" id="lock" checked> 학생이 범위를 바꾸지 못하게 고정</label>
+ </section>
+ <aside class="side">
+  <section>
+   <div class="note">선택한 범위</div>
+   <div class="n" id="count">0문제</div>
+   <p class="note" id="warn" hidden>문제가 하나도 없다. 단원이나 유형을 더 골라 주세요.</p>
+  </section>
+  <section style="display:grid;gap:10px">
+   <div id="qr" aria-label="학생용 QR"></div>
+   <div class="url" id="url"></div>
+   <div class="row">
+    <button class="btn main" type="button" id="copy">링크 복사</button>
+    <a class="btn" id="save" download="한문요괴원정기_QR.png">QR 저장</a>
+    <a class="btn" id="open" target="_blank" rel="noopener">미리 해 보기</a>
+   </div>
+   <div class="msg" id="msg" role="status"></div>
+  </section>
+ </aside>
+</div>
+</div>
+<script src="assets/lib/qrcode.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let UNITS=[],CATS=[],BANK=[];
+const GAME=new URL('./',location.href).href;
+fetch('./index.html').then(r=>r.text()).then(src=>{
+ const a=src.indexOf('const UNITS=['),b=src.indexOf('const URLSET=');
+ ({UNITS,CATS,BANK}=new Function(src.slice(a,b)+';return {UNITS,CATS,BANK};')());
+ const uc={},cc={};BANK.forEach(q=>{uc[q.u]=(uc[q.u]||0)+1;cc[q.c]=(cc[q.c]||0)+1});
+ $('#units').innerHTML=UNITS.map(([id,nm])=>`<label class="opt"><input type="checkbox" name="u" value="${esc(id)}" checked> ${esc(nm)}<small>${uc[id]||0}</small></label>`).join('');
+ $('#cats').innerHTML=CATS.map((c,i)=>`<label class="opt"><input type="checkbox" name="c" value="${i}" checked> ${esc(c)}<small>${cc[c]||0}</small></label>`).join('');
+ update();
+}).catch(()=>{$('#units').innerHTML='<p class="note">게임 파일을 불러오지 못했다. 이 페이지는 게임과 같은 주소(GitHub Pages)에서 열어 주세요.</p>'});
+const vals=n=>[...document.querySelectorAll(`input[name="${n}"]:checked`)].map(x=>x.value);
+function update(){
+ const u=vals('u'),c=vals('c'),lock=$('#lock').checked;
+ const allU=u.length===UNITS.length,allC=c.length===CATS.length;
+ const n=BANK.filter(q=>u.includes(q.u)&&c.includes(String(CATS.indexOf(q.c)))).length;
+ $('#count').textContent=n+'문제';$('#count').classList.toggle('zero',!n);$('#warn').hidden=!!n;
+ const p=[];
+ if(!allU)p.push('u='+u.map(encodeURIComponent).join(','));
+ if(!allC)p.push('c='+c.join(','));
+ if(p.length&&lock)p.push('lock=1');
+ const url=GAME+(p.length?'?'+p.join('&'):'');
+ $('#url').textContent=url;$('#open').href=url;
+ $('#qr').innerHTML='';
+ if(window.qrcode){const q=qrcode(0,'M');q.addData(url);q.make();
+  const cell=12,m=4,size=(q.getModuleCount()+m*2)*cell,cv=document.createElement('canvas');cv.width=cv.height=size;
+  const g=cv.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,size,size);g.fillStyle='#000';
+  for(let r=0;r<q.getModuleCount();r++)for(let c=0;c<q.getModuleCount();c++)if(q.isDark(r,c))g.fillRect((c+m)*cell,(r+m)*cell,cell,cell);
+  $('#qr').appendChild(cv);$('#save').href=cv.toDataURL('image/png')}
+ $('#copy').disabled=!n;$('#msg').textContent='';
+}
+document.addEventListener('change',e=>{if(e.target.matches('input'))update()});
+document.addEventListener('click',e=>{
+ const b=e.target.closest('[data-all],[data-none]');if(!b)return;
+ const n=b.dataset.all||b.dataset.none;document.querySelectorAll(`input[name="${n}"]`).forEach(x=>x.checked=!!b.dataset.all);update();
+});
+$('#copy').addEventListener('click',()=>{
+ const t=$('#url').textContent;
+ navigator.clipboard.writeText(t).then(()=>$('#msg').textContent='복사했다. 학생들에게 붙여 넣어 보내면 된다.')
+  .catch(()=>{const r=document.createRange();r.selectNodeContents($('#url'));getSelection().removeAllRanges();getSelection().addRange(r);$('#msg').textContent='링크를 선택해 두었다. Ctrl+C로 복사하세요.'});
+});
+</script>
+</body>
+</html>

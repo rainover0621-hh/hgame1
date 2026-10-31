@@ -707,6 +707,14 @@ const TEXTBOOK=[
 const BANK=TEXTBOOK.map(([u,c,l,q,h,o,e],id)=>({id,u,c,l,q,h,o,e}));
 const UNIT_NAME=Object.fromEntries(UNITS);
 const CATS=['한자','한자어휘','한자성어','고사성어','문장풀이','기타'];
+/* 교사가 배포 링크에 범위를 넣으면 그대로 쓴다: ?u=1,2,자전&c=0,2&lock=1 (c는 CATS 순서 번호) */
+const URLSET=(()=>{
+ let p;try{p=new URLSearchParams(location.search)}catch(e){p=new URLSearchParams('')}
+ const ids=UNITS.map(u=>u[0]);
+ const u=(p.get('u')||'').split(',').filter(x=>ids.includes(x));
+ const c=(p.get('c')||'').split(',').filter(x=>x!==''&&CATS[+x]).map(x=>CATS[+x]);
+ return {u,c,lock:p.get('lock')==='1'&&(u.length>0||c.length>0)};
+})();
 
 /* ───────── 규칙 ───────── */
 const LV={
@@ -798,10 +806,11 @@ const shade=(c,t)=>t<0?mix(c,'#000000',-t):mix(c,'#ffffff',t);
 const savedChar=store.get('hanmun-char');
 const G={state:'title',stage:0,cam:0,speed:0,t:0,hp:100,maxHp:100,score:0,combo:0,maxCombo:0,correct:0,total:0,
  wrong:[],inv:{shield:0,hint:0},ents:[],parts:[],floats:[],cur:null,banner:null,shake:0,flash:0,fade:0,
- used:new Set(),cats:new Set(CATS),units:loadUnits(),stDone:0,stTotal:0,bullets:[],dodge:null,hitstop:0,zoom:1,mod:{dmg:1,time:0,score:1},journey:[],won:false,story:null,char:CHARS[savedChar]?savedChar:'brain'};
+ used:new Set(),cats:new Set(URLSET.c.length?URLSET.c:CATS),units:loadUnits(),stDone:0,stTotal:0,bullets:[],dodge:null,hitstop:0,zoom:1,mod:{dmg:1,time:0,score:1},journey:[],won:false,story:null,char:CHARS[savedChar]?savedChar:'brain'};
 const P={y:0,vy:0,onGround:true,jumps:0,phase:0,attack:0,hurt:0,knock:0,shieldFx:0,slide:0,dx:0,inv:0,mvL:false,mvR:false,sq:0,vx:0,trail:[],step:0,happy:0};
 const CH=()=>CHARS[G.char];
 function loadUnits(){
+ if(URLSET.u.length)return new Set(URLSET.u);
  const ids=UNITS.map(u=>u[0]);let v=null;try{v=JSON.parse(store.get('hanmun-units'))}catch(e){}
  const set=new Set(Array.isArray(v)?v.filter(x=>ids.includes(x)):ids);
  return set.size?set:new Set(ids);
@@ -1268,13 +1277,17 @@ function showTitle(){
   <h2>주인공 고르기</h2>
   <div class="chars">${Object.keys(CHARS).map(charCard).join('')}</div>
   <div class="row" style="margin-top:14px"><button class="go" id="startBtn" data-act="start">원정 떠나기</button><span class="best">${best?`최고 기록 ${best}점 · `:''}<span id="rangeN">${rangeCount()}</span>문제에서 출제</span></div>
-  <h2>출제 범위 · 교과서 단원</h2>
+  ${URLSET.lock?`<h2>출제 범위</h2>
+  <p class="keys" style="margin:0 0 6px">선생님이 정한 범위로 출제된다.</p>
+  <div class="chips">${UNITS.filter(([id])=>G.units.has(id)).map(([id,nm])=>`<span class="chip" aria-pressed="true">${esc(nm)}</span>`).join('')}</div>
+  <div class="chips" style="margin-top:6px">${CATS.filter(c=>G.cats.has(c)).map(c=>`<span class="chip" aria-pressed="true">${c}</span>`).join('')}</div>
+`:`  <h2>출제 범위 · 교과서 단원</h2>
   <p class="keys" style="margin:0 0 6px">금성출판사 3학년 한문 수업 자료를 바탕으로 만든 문제. 시험 범위에 맞게 단원을 골라 보자.</p>
   <div class="chips" style="margin-bottom:6px"><button class="chip" data-act="uall">전체 선택</button><button class="chip" data-act="unone">모두 해제</button></div>
   <div class="chips units">${UNITS.map(([id,nm])=>`<button class="chip" data-act="unit" data-u="${id}" aria-pressed="${G.units.has(id)}">${esc(nm)}<small>${ucounts[id]||0}</small></button>`).join('')}</div>
   <h2>출제 범위 · 문제 유형</h2>
   <div class="chips">${CATS.map(c=>`<button class="chip" id="cat-${c}" data-act="cat" data-c="${c}" aria-pressed="${G.cats.has(c)}">${c}<small>${counts[c]}</small></button>`).join('')}</div>
-  <h2>난이도별 점수 (기본값)</h2>
+`}  <h2>난이도별 점수 (기본값)</h2>
   <table><thead><tr><th>난이도</th><th>정답 점수</th><th>오답 피해</th><th>제한 시간</th></tr></thead><tbody>
   ${[1,2,3,4].map(k=>`<tr><td><span class="lvl ${LV[k].cls}">${LV[k].name}</span></td><td>${LV[k].pts}점</td><td>HP −${LV[k].dmg}</td><td>${LV[k].time}초</td></tr>`).join('')}
   </tbody></table>
@@ -1324,7 +1337,7 @@ function setUnits(all){
 function rangeUI(){
  panel.querySelectorAll('[data-act="unit"]').forEach(x=>x.setAttribute('aria-pressed',G.units.has(x.dataset.u)));
  const n=$('#rangeN');if(n)n.textContent=rangeCount();
- store.set('hanmun-units',JSON.stringify([...G.units]));
+ if(!URLSET.u.length)store.set('hanmun-units',JSON.stringify([...G.units]));
 }
 function showResult(){
  const acc=G.total?G.correct/G.total:0,won=G.state==='win'||G.won,C=CH();
