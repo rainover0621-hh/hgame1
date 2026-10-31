@@ -949,7 +949,7 @@ const OBS={
  fallrock:{name:'떨어지는 돌',dmg:10,w:28,h:42,dyn:'fall'},
  geyser:{name:'물줄기',dmg:9,w:28,h:128,dyn:'geyser'},
  bolt:{name:'번개',dmg:11,w:36,h:26,dyn:'bolt'},
- ghostfly:{name:'떠도는 귀신',dmg:8,w:24,air:true,vx:-340},
+ ghostfly:{name:'떠도는 귀신',dmg:8,w:30,air:true,vx:-340},
  scale:{name:'용의 비늘',dmg:10,w:0,air:true,dyn:'scale'},
 };
 /* 장별 함정 속도 (3장 → 5장으로 갈수록 빠르고 촉박하게). 0 · 1장 칸은 쓰지 않는다 */
@@ -1033,16 +1033,16 @@ const topicOf=q=>q.t||(q.h&&/[\u3400-\u9fff]/.test(q.h)?q.h.replace(/[^\u3400-\u
 let recentT=[];try{const v=JSON.parse(store.get('hanmun-topics'));if(Array.isArray(v))recentT=v}catch(e){}
 function saveSeen(){store.set('hanmun-seen',JSON.stringify([...G.used].slice(-400)))}
 function loadSeen(){try{const v=JSON.parse(store.get('hanmun-seen'));if(Array.isArray(v))v.forEach(id=>BANK[id]&&G.used.add(id))}catch(e){}}
-/* 4 · 5장 보스(각 3문제): 맞혀야 하는 3문제 가운데 1문제는 한시(13~15-2과) 또는 독도(19과) 문제다.
-   자리는 무작위이고, 틀리면 맞힐 때까지 그 자리에 한시 · 독도 문제를 낸다. 17과 문제는 보스전마다 한 문제까지 */
+/* 4 · 5장 보스(각 3문제): 보스전마다 한시(13~15-2과) · 독도(19과) 문제를 딱 한 문제 낸다(자리는 무작위).
+   맞히든 틀리든 그 뒤로는 한시 · 독도 문제를 내지 않는다. 17과 문제는 보스전마다 한 문제까지 */
 const POEM_UNITS=['13','14','15','15-2','19'];
 function bossPick(e){
  if(G.stage<3)return pick(e.qlv,true);
  const b=e.bq||(e.bq={n:0,poem:false,u17:0,slot:Math.floor(rand()*e.max)});
  const inR=BANK.some(q=>inRange(q)&&POEM_UNITS.includes(q.u));
  let q;
- if(inR&&!b.poemOk&&(b.n>=b.slot||e.hp<=1))q=pick([3,2],false,{only:POEM_UNITS});
- else q=pick(e.qlv,true,{avoid:b.u17>=1?['17']:[]});
+ if(inR&&!b.poem&&(b.n>=b.slot||e.hp<=1))q=pick([3,2],false,{only:POEM_UNITS});
+ else q=pick(e.qlv,true,{avoid:inR?(b.u17>=1?[...POEM_UNITS,'17']:POEM_UNITS):(b.u17>=1?['17']:[])});
  b.n++;if(POEM_UNITS.includes(q.u))b.poem=true;if(q.u==='17')b.u17++;
  return q;
 }
@@ -1340,7 +1340,7 @@ function answer(i){
   c.fast=Math.round(L.pts*TIME_BONUS*frac);
   c.gain=Math.round((L.pts+bonus+c.fast)*C.scoreMul*G.mod.score);G.score+=c.gain;
   P.attack=.45;P.happy=1.4;sfx('ok');setTimeout(()=>{G.hitstop=.09;G.zoom=1.06},140);
-  if(e.boss){e.hp--;e.hit=.5;if(e.hp<=0)e.dying=1;if(e.bq&&POEM_UNITS.includes(c.q.u))e.bq.poemOk=true}else e.dying=.6;
+  if(e.boss){e.hp--;e.hit=.5;if(e.hp<=0)e.dying=1}else e.dying=.6;
   setTimeout(()=>{burst(e.x-G.cam,GROUND-(e.boss?80:50),'#141218',e.boss?40:24);sfx(e.boss&&e.hp<=0?'boss':'defeat')},120);
   floater(`+${c.gain}`,'#e9b949',e.x-G.cam,GROUND-(e.boss?230:150),34);
  }else{
@@ -2889,13 +2889,27 @@ function drawObs(e){
   cx.fillStyle='#141218';cx.beginPath();cx.moveTo(sx-2,cy);cx.quadraticCurveTo(sx-16,cy+26*fl,sx-30,cy+28*fl);cx.quadraticCurveTo(sx-18,cy+8*fl,sx-6,cy+4);cx.closePath();cx.fill();
   if(G.state==='run'&&rand()<.15)G.parts.push({x:sx+20,y:cy,vx:30,vy:20,r:2+rand()*2,life:.5,col:'#141218'});
  }else if(e.type==='ghostfly'){
-  const cy=GROUND-98+Math.sin(G.t*8+e.seed)*4;
-  cx.fillStyle=lgrad(cx,sx,0,sx+90,0,[[0,'rgba(230,235,255,.5)'],[1,'rgba(230,235,255,0)']]);
-  cx.beginPath();cx.moveTo(sx,cy-16);cx.quadraticCurveTo(sx+50,cy-10+Math.sin(G.t*14)*5,sx+90,cy+Math.sin(G.t*10)*8);cx.quadraticCurveTo(sx+50,cy+14,sx,cy+16);cx.fill();
-  cx.fillStyle=sphere(cx,sx,cy,20,'#eef0fa');ell(cx,sx,cy,20,18);cx.fill();
-  cx.fillStyle='#1a1424';ell(cx,sx-8,cy-3,4,5.5);cx.fill();ell(cx,sx+4,cy-3,3.5,5);cx.fill();ell(cx,sx-3,cy+8,4,3);cx.fill();
-  cx.fillStyle='rgba(120,200,255,.9)';ell(cx,sx-8,cy-4,1.4,1.4);cx.fill();ell(cx,sx+4,cy-4,1.3,1.3);cx.fill();
-  if(G.state==='run'&&rand()<.3)G.parts.push({x:sx+20,y:cy,vx:60,vy:-10,r:2+rand()*3,life:.4,col:'rgba(220,230,255,.6)'});
+  const cy=GROUND-100+Math.sin(G.t*8+e.seed)*5,k=1.55,fl=Math.sin(G.t*16+e.seed);
+  cx.save();cx.translate(sx,cy);cx.scale(k,k);
+  // 찢어진 꼬리
+  cx.fillStyle=lgrad(cx,0,0,70,0,[[0,'rgba(200,210,235,.75)'],[1,'rgba(160,170,210,0)']]);
+  cx.beginPath();cx.moveTo(4,-16);cx.quadraticCurveTo(30,-18+fl*4,44,-8);cx.lineTo(36,-4);cx.lineTo(58,2+fl*5);cx.lineTo(40,4);cx.lineTo(64,12-fl*4);cx.quadraticCurveTo(30,18,2,16);cx.closePath();cx.fill();
+  // 머리카락
+  cx.strokeStyle='#120e18';cx.lineCap='round';
+  for(let i=0;i<7;i++){cx.lineWidth=3;cx.beginPath();cx.moveTo(-10+i*4,-16);cx.quadraticCurveTo(14+i*5,-20+Math.sin(G.t*10+i)*5,30+i*6,-6+i*3+Math.sin(G.t*12+i)*4);cx.stroke()}
+  // 얼굴
+  cx.fillStyle=sphere(cx,-2,-2,20,'#d8dceb');ell(cx,0,0,17,19);cx.fill();
+  cx.fillStyle='rgba(40,50,80,.35)';ell(cx,4,6,12,10);cx.fill();
+  // 움푹 꺼진 눈 + 붉은 눈빛
+  cx.fillStyle='#0a0610';cx.save();cx.rotate(.25);ell(cx,-8,-6,5.5,4);cx.fill();cx.restore();cx.save();cx.rotate(-.25);ell(cx,6,-2,5,3.8);cx.fill();cx.restore();
+  cx.fillStyle='#ff3b2f';cx.shadowColor='#ff3b2f';cx.shadowBlur=8;ell(cx,-8,-5,1.8,1.8);cx.fill();ell(cx,5,-4,1.6,1.6);cx.fill();cx.shadowBlur=0;
+  // 찡그린 눈썹 주름
+  cx.strokeStyle='#2a2238';cx.lineWidth=1.6;cx.beginPath();cx.moveTo(-14,-12);cx.lineTo(-4,-9);cx.moveTo(11,-10);cx.lineTo(2,-8);cx.stroke();
+  // 비명 지르는 입
+  cx.fillStyle='#0a0610';cx.beginPath();cx.ellipse(-2,9,5,7+fl*1.5,0,0,Math.PI*2);cx.fill();
+  cx.fillStyle='#8a1a1a';ell(cx,-2,12,3,3);cx.fill();
+  cx.restore();
+  if(G.state==='run'&&rand()<.35)G.parts.push({x:sx+30,y:cy+(rand()-.5)*20,vx:70,vy:-10,r:2+rand()*3,life:.4,col:'rgba(210,220,255,.55)'});
  }else if(O.dyn)drawHaz(e,sx);
  cx.restore();
  // 1장에서는 피하는 방법을 위에 적어 준다
