@@ -1079,17 +1079,17 @@ function pickItem(){
 }
 function pickMob(S,l){const c=S.mobs.filter(m=>MOBS[m].lv===l);const p=c.length?c:S.mobs;return p[Math.floor(rand()*p.length)]}
 /* 스테이지별 장애물 난이도: n 개수 범위, sp 장애물 간격, combo 한 번에 넘는 연속 장애물 확률 */
-const DIFF=[{n:[6,7],sp:330,combo:0},{n:[7,8],sp:310,combo:.18},{n:[10,12],sp:282,combos:2},{n:[9,11],sp:264,combos:2},{n:[12,15],sp:250,combos:3}];
+const DIFF=[{n:[6,7],sp:330,combo:0},{n:[7,8],sp:310,combo:.18},{n:[10,12],sp:233,combos:5,pre:380,post:280},{n:[9,11],sp:274,combos:5,pre:380,post:280},{n:[12,15],sp:228,combos:5,pre:380,post:280}];
 const COMBO_OK=['rock','trap','spikes','thorns','puddle'],TRIPLE_OK=['rock','trap'];
 /* 움직이는 장애물은 화면에 들어온 뒤 움직이므로, 계획한 자리에서 만나도록 그만큼 앞에 둔다 */
 function placeObs(t,xm){const v=Math.abs(OBS[t].vx||0);addObs(t,v?xm+v*(W+40-PX)/(280+v):xm)}
 function planGap(S,i,x0,combos=0){
  const D=DIFF[i],n=D.n[0]+Math.floor(rand()*(D.n[1]-D.n[0]+1)),itemAt=Math.floor(n/2);
- let x=x0+560,prevAir=null;
+ let x=x0+(D.pre??560),prevAir=null;
  const comboAt=new Set();{const idx=[...Array(n-1)].map((_,j)=>j+1);while(comboAt.size<Math.min(combos,idx.length))comboAt.add(idx.splice(Math.floor(rand()*idx.length),1)[0])}
  for(let k=0;k<n;k++){
+  if(comboAt.has(k)){x+=placeCombo(i,x)+D.sp+rand()*50;prevAir=null;continue}
   let t=pickObsType(S);
-  if(comboAt.has(k))t=COMBO_OK[Math.floor(rand()*COMBO_OK.length)];
   if(k===0&&OBS[t].vx)t=S.obs.find(o=>!OBS[o].vx)||'rock';
   const air=!!OBS[t].air;if(prevAir!==null&&prevAir!==air)x+=60;
   if(!air&&COMBO_OK.includes(t)&&(D.combos!=null?comboAt.has(k):rand()<D.combo)){
@@ -1112,7 +1112,17 @@ function planGap(S,i,x0,combos=0){
   if(k===itemAt&&rand()<ITEM_RATE){const ia=rand()<.5;G.ents.push({kind:'item',type:pickItem(),x:x+D.sp*.5,y:ia?GROUND-165:GROUND-28,air:ia})}
   x+=D.sp+rand()*50;
  }
- return x+360-x0;
+ return x+(D.post??360)-x0;
+}
+/* 연속 장애물(3~5장): 위+아래 · 위+앞 · 앞+아래를 이어서 낸다. 돌려주는 값은 더 쓴 거리
+   위: 3 · 4장 떨어지는 돌, 5장 용의 비늘 / 앞: 3장 떠도는 귀신, 4 · 5장 불덩이 / 아래: 그 장의 땅 장애물 */
+function placeCombo(i,x){
+ const S=STAGES[i],ground=S.obs.filter(t=>!OBS[t].air&&!OBS[t].vx&&!OBS[t].dyn),g=()=>ground.length?ground[Math.floor(rand()*ground.length)]:'rock';
+ const front=i===2?'ghostfly':'fireball',kind=['ud','uf','fd'][Math.floor(rand()*3)];
+ const top=xx=>{if(i===4){const e=addObs('scale',xx);e.trig=(HAZ[4].scale[0]+HAZ[4].scale[1])/2}else{const e=addObs('fallrock',xx);e.trig=Math.max(e.trig,300)}};
+ if(kind==='ud'){addObs(g(),x);top(i===4?x:x+240);return i===4?40:280}
+ if(kind==='uf'){top(x);placeObs(front,x+(i===4?60:300));return 320}
+ placeObs(front,x);addObs(g(),x+180);return 220;
 }
 function addObs(type,x,phase){const O=OBS[type],H=HAZ[G.stage]||HAZ[4],e={kind:'obs',type,x,vx:O.vx||0,rot:0,seed:rand()*9};
  if(O.dyn){e.phase=phase??rand();e.hNow=0;e.t=-1;const tr=H[O.dyn==='bolt'?'bolt':O.dyn==='scale'?'scale':'fall'];if(tr)e.trig=tr[0]+rand()*(tr[1]-tr[0])}
