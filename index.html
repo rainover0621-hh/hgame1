@@ -232,6 +232,11 @@ th{color:var(--muted);font-weight:400}
 .stu .nm input{width:150px}
 .stu select:focus,.stu input:focus{outline:2px solid var(--gold)}
 .ranktbl{width:100%;font-size:16px}
+.entry .stu{margin-top:4px}
+.entry .stu select,.entry .stu input{font-size:20px;padding:11px 12px;width:88px}
+.entry .stu .nm input{width:180px}
+.who-line{margin:14px 0 0;font-size:16px;color:var(--paper)}
+.linkbtn{background:none;border:0;color:var(--gold);text-decoration:underline;font-size:14px;margin-left:6px;cursor:pointer}
 .ranktbl td,.ranktbl th{padding:7px 6px;text-align:left}
 .ranktbl td:first-child{font-weight:700;color:var(--gold);width:3em}
 .ranktbl tr.me td{background:rgba(233,185,73,.16)}
@@ -1284,7 +1289,7 @@ function slide(){
 
 function start(){
  if(document.body.classList.contains('touch'))goFull();
- if(G.state==='title'){readStu();if(!stuOk()){domShake();const m=$('#stuMsg');if(m){m.textContent='학년 · 반 · 번호 · 이름을 모두 적어 주세요.';m.style.color='var(--verm)'}const f=[...document.querySelectorAll('.stu select,.stu input')].find(x=>!x.value.trim());if(f)f.focus();return}}
+ if(G.state==='title'&&!stuOk()){showEntry();return}
  if(G.state==='title'&&!rangeCount()){domShake();const n=$('#rangeN');if(n)n.textContent='0 (단원을 골라 주세요) ';return}
  initAudio();const C=CH();
  Object.assign(G,{state:'run',stage:0,hp:C.hp,maxHp:C.hp,score:0,combo:0,maxCombo:0,correct:0,total:0,wrong:[],inv:{shield:C.shields,hint:C.hints},
@@ -1715,7 +1720,32 @@ function charCard(id){
   ${Object.entries(C.stats).map(([k,v])=>`<span class="stat">${k}<span><i style="width:${v*20}%;background:${STATCOL[k]}"></i></span></span>`).join('')}
   <ul class="abil">${C.abil.map(a=>`<li>${a}</li>`).join('')}</ul></span></button>`;
 }
+/* 입장 화면: 학년 · 반 · 번호 · 이름을 적고 주인공 고르기로 넘어간다 */
+function showEntry(){
+ G.screen='entry';
+ showPanel(`<div class="title entry">
+  <p class="eyebrow">3학년 한문 최종학습정리</p>
+  <h1>한문 요괴 원정기</h1>
+  <p class="lede">원정을 떠나기 전에 이름을 적자. 기록과 오늘의 순위에 쓰인다.</p>
+  <h2>내 정보</h2>
+  <div class="stu">
+   <label>학년<select id="stuG"><option value="">-</option>${[1,2,3].map(g=>`<option ${String(STU.grade)===String(g)?'selected':''}>${g}</option>`).join('')}</select></label>
+   <label>반<input id="stuC" type="number" inputmode="numeric" min="1" max="20" value="${esc(STU.cls||'')}"></label>
+   <label>번호<input id="stuN" type="number" inputmode="numeric" min="1" max="50" value="${esc(STU.no||'')}"></label>
+   <label class="nm">이름<input id="stuName" maxlength="10" autocomplete="off" value="${esc(STU.name||'')}"></label>
+  </div>
+  <p class="keys" id="stuMsg">${RESULT_URL?'기록과 순위에 쓰인다. 순위에는 이름 가운데 글자가 가려져 나온다.':'순위에 쓰인다. 이름 가운데 글자는 가려져 나온다.'}</p>
+  <div class="row" style="margin-top:16px"><button class="go" id="entryBtn" data-act="enter">주인공 고르러 가기</button><button class="ghost" data-act="rank">오늘의 순위</button></div>
+ </div>`);
+ const f=[...document.querySelectorAll('.stu select,.stu input')].find(x=>!x.value.trim());if(f)f.focus({preventScroll:true});
+}
+function enterGame(){
+ readStu();
+ if(!stuOk()){domShake();const m=$('#stuMsg');if(m){m.textContent='학년 · 반 · 번호 · 이름을 모두 적어 주세요.';m.style.color='var(--verm)'}const f=[...document.querySelectorAll('.stu select,.stu input')].find(x=>!x.value.trim());if(f)f.focus();return}
+ sfx('item');showTitle();
+}
 function showTitle(){
+ G.screen='title';
  const best=+store.get('hanmun-best')||0;
  const counts=Object.fromEntries(CATS.map(c=>[c,BANK.filter(q=>q.c===c).length]));
  const ucounts={};BANK.forEach(q=>ucounts[q.u]=(ucounts[q.u]||0)+1);
@@ -1726,14 +1756,7 @@ function showTitle(){
   <h2>주인공 고르기</h2>
   <div class="chars">${Object.keys(CHARS).map(charCard).join('')}</div>
   ${URLSET.boss>=0?`<p class="keys" style="color:var(--gold);margin-top:12px">시험 모드: ${STAGES[URLSET.boss].num} 보스(${MOBS[STAGES[URLSET.boss].boss].name})전만 한다.</p>`:URLSET.stage>0?`<p class="keys" style="color:var(--gold);margin-top:12px">시험 모드: ${STAGES[URLSET.stage].num} ${STAGES[URLSET.stage].name}부터 시작한다.</p>`:''}
-  <h2>내 정보</h2>
-  <div class="stu">
-   <label>학년<select id="stuG"><option value="">-</option>${[1,2,3].map(g=>`<option ${String(STU.grade)===String(g)?'selected':''}>${g}</option>`).join('')}</select></label>
-   <label>반<input id="stuC" type="number" inputmode="numeric" min="1" max="20" value="${esc(STU.cls||'')}"></label>
-   <label>번호<input id="stuN" type="number" inputmode="numeric" min="1" max="50" value="${esc(STU.no||'')}"></label>
-   <label class="nm">이름<input id="stuName" maxlength="10" autocomplete="off" value="${esc(STU.name||'')}"></label>
-  </div>
-  <p class="keys" id="stuMsg">${RESULT_URL?'기록과 순위에 쓰인다. 순위에는 이름 가운데 글자가 가려져 나온다.':'순위에 쓰인다. 이름 가운데 글자는 가려져 나온다.'}</p>
+  <p class="who-line">${esc(stuLabel())} <button class="linkbtn" data-act="entry">정보 바꾸기</button></p>
   <div class="row" style="margin-top:14px"><button class="go" id="startBtn" data-act="start">원정 떠나기</button><button class="ghost" data-act="rank">오늘의 순위</button><span class="best">${best?`최고 기록 ${best}점 · `:''}<span id="rangeN">${rangeCount()}</span>문제에서 출제</span></div>
   ${URLSET.lock?`<h2>출제 범위</h2>
   <p class="keys" style="margin:0 0 6px">선생님이 정한 범위로 출제된다.</p>
@@ -3146,11 +3169,12 @@ panel.addEventListener('click',ev=>{
  const a=b.dataset.act;initAudio();
  if(a==='start'||a==='retry')start();else if(a==='opt')answer(+b.dataset.i);else if(a==='hint')useHint();
  else if(a==='next')next();else if(a==='home')toTitle();else if(a==='cat')toggleCat(b);else if(a==='unit')toggleUnit(b);else if(a==='uall'||a==='unone')setUnits(a==='uall');else if(a==='char')pickChar(b);
- else if(a==='rank'){const st=G.state;if(st==='title')readStu();showRanking(st==='title'?showTitle:showResult)}else if(a==='rankback'){(rankBack||showTitle)()}
+ else if(a==='rank'){const st=G.state;if(G.screen==='entry')readStu();showRanking(st!=='title'?showResult:G.screen==='entry'?showEntry:showTitle)}else if(a==='enter')enterGame();else if(a==='entry')showEntry();else if(a==='rankback'){(rankBack||showTitle)()}
  else if(a==='snext'||a==='sdone')storyNext();else if(a==='sskip')storySkip();else if(a==='schoose')storyChoose(+b.dataset.i);else if(a==='sopt')storyAnswer(+b.dataset.i);
 });
 addEventListener('keydown',ev=>{
  const k=ev.key,c=G.cur;
+ if(G.state==='title'&&G.screen==='entry'&&k==='Enter'){ev.preventDefault();enterGame();return}
  if(G.state==='story'&&G.story){const st=G.story;
   if(k==='Enter'&&(st.phase==='lines'||st.phase==='result')){ev.preventDefault();storyNext();return}
   if(k>='1'&&k<='4'){if(st.phase==='choose'){ev.preventDefault();storyChoose(+k-1);return}if(st.phase==='quiz'){ev.preventDefault();storyAnswer(+k-1);return}}
@@ -3178,7 +3202,7 @@ $('#mute').addEventListener('click',ev=>{muted=!muted;initAudio();bgmUpdate();ev
 
 if(document.fonts&&document.fonts.load){['21px "Noto Serif KR"','66px "Nanum Brush Script"','15px "Noto Sans KR"'].forEach(f=>document.fonts.load(f,'藥蔘符筆 한문 원정기').catch(()=>{}))}
 G.hp=G.maxHp=CH().hp;
-showTitle();
+showEntry();
 let last=performance.now();
 const PERF={n:0,sum:0,slow:0};
 function perfTick(ms){
