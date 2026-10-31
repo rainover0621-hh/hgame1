@@ -948,14 +948,15 @@ const OBS={
  /* 움직이는 함정(dyn): 높이가 시간에 따라 바뀌고, 0일 때는 지나가도 안전하다 */
  spikefloor:{name:'가시 바닥',dmg:9,w:40,h:40,dyn:'cycle'},
  fallrock:{name:'떨어지는 돌',dmg:10,w:28,h:42,dyn:'fall'},
- lavadrop:{name:'떨어지는 용암',dmg:10,w:30,h:36,dyn:'fall'},
+ lavadrop:{name:'떨어지는 용암',dmg:10,w:38,h:42,dyn:'fall'},
+ lavaball:{name:'날아오는 용암',dmg:10,w:30,air:true,vx:-250,bob:[30,3.2],ah:20},
  geyser:{name:'물줄기',dmg:9,w:28,h:128,dyn:'geyser'},
  bolt:{name:'번개',dmg:11,w:36,h:26,dyn:'bolt'},
  ghostfly:{name:'떠도는 귀신',dmg:8,w:30,air:true,vx:-340,bob:[40,2.6]},
  scale:{name:'용의 비늘',dmg:10,w:0,air:true,dyn:'scale'},
 };
 /* 복합 배치 확률과 섞는 장애물 (3장: 앞 귀신 · 위 돌, 4장: 앞 불덩이 · 위 돌, 5장: 위 비늘 · 앞 불덩이) */
-const MIX=[null,null,{p:.35,set:['ghostfly','fallrock']},{p:.35,set:['fireball','lavadrop']},{p:.4,set:['scale','fireball']}];
+const MIX=[null,null,{p:.35,set:['ghostfly','fallrock']},{p:.35,set:['lavaball','lavadrop']},{p:.4,set:['scale','fireball']}];
 /* 장별 함정 속도 (3장 → 5장으로 갈수록 빠르고 촉박하게). 0 · 1장 칸은 쓰지 않는다 */
 const HAZ=[null,null,
  {cycle:1.45,fall:[300,380]},
@@ -976,8 +977,8 @@ const STAGES=[
  {id:'peach',num:'제1장',name:'도화 마을',han:'桃花村',enemies:[1,1,2,1],mobs:['wasp','plant'],boss:'spider',obs:['rock','puddle','thorns','web','crow']},
  {id:'bamboo',num:'제2장',name:'월하 대숲',han:'月下竹林',enemies:[2,1,2,2],mobs:['boar','fox'],boss:'wolf',obs:['spikes','log','crow','trap','thorns']},
  {id:'valley',num:'제3장',name:'귀곡',han:'鬼谷',enemies:[2,3,1,2,3],mobs:['wisp','shadow','jiangshi'],boss:'ghost',obs:['tomb','puddle','web','boulder','crow','spikefloor','fallrock','ghostfly'],obsW:{spikefloor:5,boulder:5.6,tomb:4.9,crow:3.9,web:3.3,puddle:3.2,fallrock:3.5,ghostfly:7}},
- {id:'fire',num:'제4장',name:'화염 요마성',han:'火焰妖魔城',enemies:[3,2,3,2,3],mobs:['goblin','golem','bulgasari'],boss:'demon',obs:['fireball','boulder','spikes','trap','rock','spikefloor','lavadrop'],obsW:{spikefloor:7.2,lavadrop:6.5,fireball:3.8,rock:5,trap:5,spikes:4,boulder:4}},
- {id:'storm',num:'제5장',name:'창해 용궁',han:'滄海龍宮',enemies:[3,2,3,3,3],mobs:['imugi','firebird'],boss:'dragon',obs:['wave','crow','boulder','puddle','fireball','geyser','bolt','scale'],obsW:{fireball:5,wave:10.2,geyser:7.9,bolt:8.1,scale:8,crow:4.6,boulder:3.8,puddle:4}},
+ {id:'fire',num:'제4장',name:'화염 요마성',han:'火焰妖魔城',enemies:[3,2,3,2,3],mobs:['goblin','golem','bulgasari'],boss:'demon',obs:['lavaball','boulder','spikes','trap','rock','spikefloor','lavadrop'],obsW:{spikefloor:6,lavadrop:10,lavaball:6.5,rock:4,trap:4,spikes:3.5,boulder:3}},
+ {id:'storm',num:'제5장',name:'창해 용궁',han:'滄海龍宮',enemies:[3,2,3,3,3],mobs:['imugi','firebird'],boss:'dragon',obs:['wave','crow','boulder','puddle','fireball','geyser','bolt','scale'],obsW:{fireball:4.5,wave:15,geyser:6.5,bolt:13,scale:7,crow:3.5,boulder:3,puddle:3}},
 ];
 /* 보스: 문제를 하나 낼 때마다 스펠카드 탄막 한 장. pat은 탄막 종류, mouth는 탄이 나오는 위치 */
 const BOSSES={
@@ -1121,7 +1122,7 @@ function planGap(S,i,x0,combos=0){
    위: 3 · 4장 떨어지는 돌, 5장 용의 비늘 / 앞: 3장 떠도는 귀신, 4 · 5장 불덩이 / 아래: 그 장의 땅 장애물 */
 function placeCombo(i,x){
  const S=STAGES[i],ground=S.obs.filter(t=>!OBS[t].air&&!OBS[t].vx&&!OBS[t].dyn),g=()=>ground.length?ground[Math.floor(rand()*ground.length)]:'rock';
- const front=i===2?'ghostfly':'fireball',kind=['ud','uf','fd'][Math.floor(rand()*3)];
+ const front=i===2?'ghostfly':i===3?'lavaball':'fireball',kind=['ud','uf','fd'][Math.floor(rand()*3)];
  const top=xx=>{if(i===4){const e=addObs('scale',xx);e.trig=(HAZ[4].scale[0]+HAZ[4].scale[1])/2}else{const e=addObs(i===3?'lavadrop':'fallrock',xx);e.trig=Math.max(e.trig,300)}};
  if(kind==='ud'){addObs(g(),x);top(i===4?x:x+240);return i===4?40:280}
  if(kind==='uf'){top(x);placeObs(front,x+(i===4?60:300));return 320}
@@ -1280,7 +1281,7 @@ function interact(){
   if(e.kind==='obs'){
    const O=OBS[e.type];if(O.dyn==='scale'||Math.abs(e.x-px)>=O.w)continue;
    let hit;
-   if(O.air){const top=P.y-heroH(),cy=-98+bobY(e);hit=top<cy+14&&P.y>cy-14}
+   if(O.air){const top=P.y-heroH(),cy=-98+bobY(e),ah=O.ah||14;hit=top<cy+ah&&P.y>cy-ah}
    else if(O.dyn)hit=e.strike||(e.hNow>0&&P.y>-e.hNow+4);
    else hit=P.y>-O.h+4;
    if(hit){e.used=true;hitObs(e,O);if(G.hp<=0){gameOver();return}}
@@ -2129,6 +2130,7 @@ function drawHaz(e,sx){
   cx.restore();
  }else if(e.type==='lavadrop'){
   if(e.t<0)return;
+  cx.save();cx.translate(sx,G0);cx.scale(1.4,1.4);cx.translate(-sx,-G0);
   const k=Math.min(1,e.t/.42),fy=e.t<.42?-(1-k*k)*520:0;
   cx.fillStyle=`rgba(255,120,40,${.15+.3*k})`;ell(cx,sx,G0+3,10+26*k,4+4*k);cx.fill();
   if(e.t<.42){
@@ -2140,8 +2142,9 @@ function drawHaz(e,sx){
    cx.fillStyle=lgrad(cx,0,G0-34,0,G0+4,[[0,mix('#ffb040','#5a2a1a',cool)],[.6,mix('#e0401a','#3a1a14',cool)],[1,'#2a0c08']]);
    cx.beginPath();cx.moveTo(sx-30,G0+4);cx.quadraticCurveTo(sx-26,G0-22,sx-8,G0-30-Math.sin(t)*3);cx.quadraticCurveTo(sx+6,G0-36,sx+18,G0-24);cx.quadraticCurveTo(sx+30,G0-12,sx+30,G0+4);cx.closePath();cx.fill();
    cx.strokeStyle=`rgba(255,220,120,${.8-cool*.5})`;cx.lineWidth=2;cx.beginPath();cx.moveTo(sx-14,G0-20);cx.lineTo(sx-4,G0-10);cx.lineTo(sx+8,G0-22);cx.stroke();
-   if(G.state==='run'&&rand()<.25)G.parts.push({x:sx+(rand()-.5)*40,y:G0-20,vx:(rand()-.5)*40,vy:-60-rand()*60,r:2+rand()*2,life:.5,col:'#ff9a3a'});
+   if(G.state==='run'&&rand()<.35)G.parts.push({x:sx+(rand()-.5)*50,y:G0-26,vx:(rand()-.5)*50,vy:-80-rand()*70,r:2+rand()*3,life:.6,col:'#ff9a3a'});
   }
+  cx.restore();
  }else if(e.type==='geyser'){
   const ph=e.ph||0,warn=ph>.5&&ph<.68,h=e.hNow;
   cx.fillStyle=sphere(cx,sx,G0,30,'#2a5a7a');ell(cx,sx,G0+2,32,8);cx.fill();
@@ -2921,6 +2924,16 @@ function drawObs(e){
   cx.fillStyle=sphere(cx,0,0,r,'#7a7480');cx.beginPath();for(let k=0;k<9;k++){const a=k/9*Math.PI*2,rr2=r*(.86+hash(k+3)*.16);k?cx.lineTo(Math.cos(a)*rr2,Math.sin(a)*rr2):cx.moveTo(Math.cos(a)*rr2,Math.sin(a)*rr2)}cx.closePath();cx.fill();
   cx.strokeStyle='rgba(30,26,36,.5)';cx.lineWidth=2;cx.beginPath();cx.moveTo(-10,-14);cx.lineTo(4,-2);cx.lineTo(-2,12);cx.moveTo(8,-18);cx.lineTo(14,-6);cx.stroke();cx.restore();
   if(!(e.fling>0)&&G.state==='run'&&rand()<.4)G.parts.push({x:sx+r,y:GROUND+2,vx:60+rand()*60,vy:-50-rand()*60,r:2+rand()*3,life:.35,col:'rgba(150,130,110,.7)'});
+ }else if(e.type==='lavaball'){
+  const cy=GROUND-98+bobY(e),r=26;bobCue(e,sx,cy,r+6);
+  const halo=cx.createRadialGradient(sx,cy,r*.6,sx,cy,r*2.4);halo.addColorStop(0,'rgba(255,120,30,.45)');halo.addColorStop(1,'rgba(255,60,0,0)');cx.fillStyle=halo;ell(cx,sx,cy,r*2.4,r*2);cx.fill();
+  for(let k=0;k<9;k++){const tx=sx+r*.6+k*15,a=1-k/9,ty=GROUND-98+bobY(e,G.t-k*.04)+Math.sin(G.t*18+k)*3;
+   cx.fillStyle=`rgba(255,${90+k*16},30,${a*.7})`;ell(cx,tx,ty,(r*.8)*a+4,(r*.62)*a+3);cx.fill()}
+  const g=cx.createRadialGradient(sx-8,cy-8,3,sx,cy,r);g.addColorStop(0,'#fff6c8');g.addColorStop(.35,'#ffb030');g.addColorStop(.75,'#e0461a');g.addColorStop(1,'#6a1408');
+  cx.fillStyle=g;cx.beginPath();for(let a=0;a<=12;a++){const an=a/12*Math.PI*2,rr2=r*(1+Math.sin(G.t*9+a*1.7+e.seed)*.08);a?cx.lineTo(sx+Math.cos(an)*rr2,cy+Math.sin(an)*rr2*.9):cx.moveTo(sx+Math.cos(an)*rr2,cy+Math.sin(an)*rr2*.9)}cx.fill();
+  cx.strokeStyle='rgba(40,8,4,.55)';cx.lineWidth=2.5;cx.beginPath();cx.moveTo(sx-12,cy+4);cx.lineTo(sx-2,cy-6);cx.lineTo(sx+8,cy+2);cx.moveTo(sx-4,cy+12);cx.lineTo(sx+4,cy+6);cx.stroke();
+  if(G.state==='run'){if(rand()<.6)G.parts.push({x:sx+r*.4,y:cy+(rand()-.5)*r,vx:80+rand()*60,vy:-30-rand()*60,r:2+rand()*3,life:.5,col:rand()<.5?'#ffb040':'#ff5a20'});
+   if(rand()<.25)G.parts.push({x:sx+6,y:cy+r*.6,vx:30,vy:60,r:3+rand()*2,life:.5,col:'#e0401a'})}
  }else if(e.type==='fireball'){
   const cy=GROUND-98+bobY(e);bobCue(e,sx,cy,20);
   for(let k=0;k<6;k++){const tx=sx+10+k*12,a=1-k/6;cx.fillStyle=`rgba(255,${120+k*15},40,${a*.6})`;ell(cx,tx,GROUND-98+bobY(e,G.t-k*.035)+Math.sin(G.t*20+k)*2,12*a+3,9*a+2);cx.fill()}
