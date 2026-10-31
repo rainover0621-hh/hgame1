@@ -8,7 +8,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Nanum+Brush+Script&family=Noto+Serif+KR:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Nanum+Brush+Script&family=Noto+Serif+KR:wght@500;700&display=swap">
 <style>
 /* Layout: 16:9 달리기 무대(캔버스) 위 HUD, 넓은 화면은 오른쪽 패널을 무대 위에 겹치고 좁은 화면은 아래로 쌓는다. 먹빛 바탕 + 단청 띠 하나. */
 :root{
@@ -16,7 +16,7 @@
   --text:#f1ebdc; --muted:#aaa4b6; --paper:#f3ead6;
   --verm:#e0533a; --jade:#3aa893; --gold:#e9b949; --blue:#6d8fc4; --plum:#b9548a;
   --display:"Nanum Brush Script","Gowun Batang",serif;
-  --body:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
   --han:"Noto Serif KR","Batang","AppleMyungjo",serif;
   color-scheme:dark;
 }
@@ -29,7 +29,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 kbd{font-family:var(--body);font-size:.78em;padding:1px 6px;border-radius:5px;border:1px solid var(--line);background:var(--ink);color:var(--muted)}
 
-.game{width:100%;max-width:min(1120px,calc((100dvh - 120px) * 1.7778));min-width:0;container-type:inline-size;display:flex;flex-direction:column;gap:10px}
+.game{width:100%;max-width:calc((100dvh - 110px) * 1.7778);min-width:0;container-type:inline-size;display:flex;flex-direction:column;gap:10px}
 @media (max-width:760px){.game{max-width:none}}
 
 /* HUD */
@@ -54,7 +54,8 @@ kbd{font-family:var(--body);font-size:.78em;padding:1px 6px;border-radius:5px;bo
 .inv{font-family:var(--han);font-weight:700;display:flex;align-items:center;gap:3px;padding:2px 8px;border-radius:7px;background:var(--ink-3)}
 .inv b{font-family:var(--body);font-size:13px;font-variant-numeric:tabular-nums}
 .inv.on{box-shadow:inset 0 0 0 1px var(--gold)}
-#mute{background:var(--ink-3);border:0;border-radius:7px;width:32px;height:28px}
+#mute,#fsBtn{background:var(--ink-3);border:0;border-radius:7px;width:32px;height:28px}
+:fullscreen body,body:-webkit-full-screen{padding-block:8px}
 #mute[aria-pressed="true"]{color:var(--muted);text-decoration:line-through}
 
 /* 무대 */
@@ -214,6 +215,7 @@ th{color:var(--muted);font-weight:400}
       <span id="combo"></span>
       <span class="inv" id="invB" title="부적: 오답 피해 1회 막기">符<b>0</b></span>
       <span class="inv" id="invP" title="붓: 보기 2개 지우기">筆<b>0</b></span>
+      <button id="fsBtn" aria-label="전체 화면" title="전체 화면" hidden>⛶</button>
       <button id="mute" aria-pressed="false" aria-label="소리 끄기">♪</button>
     </div>
   </header>
@@ -221,7 +223,7 @@ th{color:var(--muted);font-weight:400}
     <div class="stage" id="stage"><canvas id="cv" aria-label="달리기 무대"></canvas></div>
     <section class="panel" id="panel" aria-live="polite"></section>
   </div>
-  <div class="pad"><button class="mv" id="leftBtn" hidden>◀</button><button id="jumpBtn">점프 ▲</button><button id="slideBtn">숙이기 ▼</button><button class="mv" id="rightBtn" hidden>▶</button></div>
+  <div class="pad"><button id="jumpBtn">점프 ▲</button><button id="slideBtn">숙이기 ▼</button><button class="mv" id="leftBtn" hidden>◀ 왼쪽</button><button class="mv" id="rightBtn" hidden>오른쪽 ▶</button></div>
 </div>
 
 <script>
@@ -936,6 +938,7 @@ function slide(){
 }
 
 function start(){
+ if(matchMedia('(pointer:coarse)').matches)goFull();
  if(G.state==='title'&&!rangeCount()){domShake();const n=$('#rangeN');if(n)n.textContent='0 (단원을 골라 주세요) ';return}
  initAudio();const C=CH();
  Object.assign(G,{state:'run',stage:0,hp:C.hp,maxHp:C.hp,score:0,combo:0,maxCombo:0,correct:0,total:0,wrong:[],inv:{shield:C.shields,hint:C.hints},
@@ -1120,7 +1123,7 @@ function sendResult(btn){
    선택지 fx: hp 회복/감소 · full 완전 회복 · maxhp 최대 HP · shield 부적 · hint 붓 · score 점수 · time 제한 시간 · dmg 받는 피해 배율 · mul 점수 배율
    quiz가 있는 선택지는 한문 문제를 맞히면 win, 틀리면 lose */
 const NPC={
- hun:{name:'훈장',han:'訓',col:'#2f8f80',sub:'도화 마을 서당'},
+ hun:{name:'훈장',han:'訓',col:'#2f8f80',sub:'도화 마을 서당',img:'hun',pos:'50% 34%'},
  jumo:{name:'주모',han:'酒',col:'#c47b2c',sub:'고갯마루 주막',img:'jumo'},
  dosa:{name:'떠돌이 도사',han:'道',col:'#5a6ab8',sub:'대숲 끝 갈림길',img:'dosa'},
  seonbi:{name:'선비의 혼',han:'魂',col:'#6a5a8a',sub:'귀곡에 묶여 있던 영혼',img:'seonbi'},
@@ -1203,7 +1206,7 @@ function startStory(sc,done){G.state='story';P.slide=0;setMovePad(false);G.story
 function speaker(who){
  if(who==='hero'){const C=CH();return`<div class="who"><img class="face" src="assets/portraits/${C.art}.jpg" alt=""><div class="nm">${C.name}<small>${C.age}세 ${C.title} · 현대에서 온 학생</small></div></div>`}
  if(who==='nar')return'';
- const N=NPC[who],pic=N.img?`<img class="face" src="assets/portraits/${N.img}.jpg" alt="" style="border-color:${N.col}">`:`<div class="badge" style="background:${N.col}">${N.han}</div>`;
+ const N=NPC[who],pic=N.img?`<img class="face" src="assets/portraits/${N.img}.jpg" alt="" style="border-color:${N.col}${N.pos?`;object-position:${N.pos}`:''}">`:`<div class="badge" style="background:${N.col}">${N.han}</div>`;
  return`<div class="who">${pic}<div class="nm">${N.name}<small>${N.sub}</small></div></div>`}
 function renderStory(){
  const st=G.story,sc=st.sc;
@@ -1436,7 +1439,27 @@ function update(dt){
 
 /* ───────── 그리기 도구 ───────── */
 const cv=$('#cv'),cx=cv.getContext('2d');
-function resize(){const r=cv.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);cv.width=Math.max(1,Math.round(r.width*d));cv.height=Math.max(1,Math.round(r.height*d))}
+/* 무대가 화면 높이에 꽉 차도록 .game 너비를 맞춘다 (가로 태블릿 · 전체 화면) */
+function fitGame(){
+ const g=$('.game'),pad=$('.pad'),wide=innerWidth>760;
+ if(!wide){g.style.maxWidth='';return}
+ const cs=getComputedStyle(document.body),pb=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
+ const padH=pad&&getComputedStyle(pad).display!=='none'?pad.offsetHeight+10:0;
+ const avail=innerHeight-pb-$('.hud').offsetHeight-10-padH;
+ g.style.maxWidth=Math.max(480,Math.floor(avail*16/9))+'px';
+}
+const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
+function goFull(){
+ const el=document.documentElement,f=el.requestFullscreen||el.webkitRequestFullscreen;
+ if(!f||fsEl())return;
+ try{const r=f.call(el,{navigationUI:'hide'});if(r&&r.then)r.then(()=>{try{screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}).catch(()=>{})}catch(e){}
+}
+function toggleFull(){if(fsEl()){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}else goFull()}
+{const el=document.documentElement;if(el.requestFullscreen||el.webkitRequestFullscreen){const b=$('#fsBtn');b.hidden=false;b.addEventListener('click',()=>{initAudio();toggleFull()})}}
+['resize','orientationchange','fullscreenchange','webkitfullscreenchange'].forEach(t=>addEventListener(t,()=>requestAnimationFrame(fitGame)));
+document.addEventListener('fullscreenchange',()=>$('#fsBtn').textContent=fsEl()?'⤡':'⛶');
+fitGame();
+function resize(){const r=cv.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1,2400/Math.max(1,r.width));cv.width=Math.max(1,Math.round(r.width*d));cv.height=Math.max(1,Math.round(r.height*d))}
 new ResizeObserver(resize).observe($('#stage'));resize();
 
 function rr(c,x,y,w,h,r){r=Math.min(r,w/2,h/2);c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
@@ -2364,14 +2387,14 @@ function drawEnemy(e){
   {noInk:e.mob==='wisp'||e.mob==='firebird',flash:Math.max(hk,e.dying>0?e.dying:0)*.85,w:boss?400:300,h:boss?350:270});
  if(!(e.dying>0)&&G.state!=='dodge'){
   const M=MOBS[e.mob],label=boss?`${M.name} ${M.han}`:`${M.name} · ${e.q.c}`,ty=GROUND-MOBH[e.mob]*sc-24;
-  cx.font='15px "Gowun Dodum",sans-serif';const tw=cx.measureText(label).width+22;
-  cx.fillStyle='rgba(0,0,0,.2)';rr(cx,sx+off-tw/2+3,ty-10,tw,26,4);cx.fill();
-  cx.fillStyle=lgrad(cx,0,ty-13,0,ty+13,[[0,'#fbf4e2'],[1,'#e2d5b8']]);rr(cx,sx+off-tw/2,ty-13,tw,26,4);cx.fill();
-  for(const rx of[sx+off-tw/2-3,sx+off+tw/2-2]){cx.fillStyle=lgrad(cx,rx,0,rx+5,0,[[0,'#3e2a1c'],[1,'#8a5a3a']]);rr(cx,rx,ty-17,5,34,2);cx.fill()}
+  cx.font='500 19px "Noto Sans KR",sans-serif';const tw=cx.measureText(label).width+26;
+  cx.fillStyle='rgba(0,0,0,.2)';rr(cx,sx+off-tw/2+3,ty-13,tw,32,4);cx.fill();
+  cx.fillStyle=lgrad(cx,0,ty-16,0,ty+16,[[0,'#fbf4e2'],[1,'#e2d5b8']]);rr(cx,sx+off-tw/2,ty-16,tw,32,4);cx.fill();
+  for(const rx of[sx+off-tw/2-3,sx+off+tw/2-2]){cx.fillStyle=lgrad(cx,rx,0,rx+6,0,[[0,'#3e2a1c'],[1,'#8a5a3a']]);rr(cx,rx,ty-21,6,42,2);cx.fill()}
   cx.fillStyle='#1b1a22';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(label,sx+off,ty+1);cx.textBaseline='alphabetic';
   cx.fillStyle={1:'#6d8fc4',2:'#3aa893',3:'#b9548a',4:'#e0533a'}[e.lvl];
-  cx.font='700 12px "Gowun Dodum",sans-serif';cx.fillText(LV[e.lvl].name,sx+off,ty-21);
-  if(boss){for(let k=0;k<e.max;k++){cx.fillStyle=k<e.hp?sphere(cx,sx+off-20+k*20,ty+24,6,'#e0533a'):'rgba(0,0,0,.25)';ell(cx,sx+off-20+k*20,ty+24,6,6);cx.fill()}}
+  cx.font='700 15px "Noto Sans KR",sans-serif';cx.fillText(LV[e.lvl].name,sx+off,ty-27);
+  if(boss){for(let k=0;k<e.max;k++){cx.fillStyle=k<e.hp?sphere(cx,sx+off-20+k*20,ty+29,6,'#e0533a'):'rgba(0,0,0,.25)';ell(cx,sx+off-20+k*20,ty+29,6,6);cx.fill()}}
  }
 }
 function drawItem(e){
@@ -2484,7 +2507,7 @@ function drawObs(e){
  cx.restore();
  // 1장에서는 피하는 방법을 위에 적어 준다
  if(G.stage===0&&!e.used&&sx>PX&&sx<W-40){
-  const air=O.air;cx.font='700 14px "Gowun Dodum",sans-serif';cx.textAlign='center';
+  const air=O.air;cx.font='700 14px "Noto Sans KR",sans-serif';cx.textAlign='center';
   const t=air?'↓ 숙이기':'↑ 점프',ty=air?GROUND-140:GROUND-62;
   cx.lineWidth=4;cx.strokeStyle='rgba(20,18,26,.75)';cx.strokeText(t,sx,ty);cx.fillStyle='#fff';cx.fillText(t,sx,ty);
  }
@@ -2497,7 +2520,7 @@ function drawBanner(){
  for(let x=W+10;x>=-10;x-=24)cx.lineTo(x,294+Math.sin(x*.05+1)*7);cx.closePath();cx.fill();
  cx.textAlign='center';cx.fillStyle='rgba(0,0,0,.5)';cx.font='66px "Nanum Brush Script",serif';cx.fillText(b.title,W/2+3,249);
  cx.fillStyle='#f6eedc';cx.fillText(b.title,W/2,246);
- cx.fillStyle='#e9b949';cx.font='19px "Gowun Dodum",sans-serif';cx.fillText(b.sub,W/2,278);
+ cx.fillStyle='#e9b949';cx.font='19px "Noto Sans KR",sans-serif';cx.fillText(b.sub,W/2,278);
  const im=b.img&&portrait(b.img);
  if(im&&im.complete&&im.naturalWidth){const fw=118,fh=150,fx=46,fy=158,iw=im.naturalWidth,ih=im.naturalHeight;let sw=iw,sh=iw*fh/fw;if(sh>ih){sh=ih;sw=ih*fw/fh}
   cx.save();rr(cx,fx,fy,fw,fh,10);cx.clip();cx.drawImage(im,(iw-sw)/2,0,sw,sh,fx,fy,fw,fh);cx.restore();
@@ -2533,7 +2556,7 @@ function render(){
  drawFG(S);
  for(const p of G.parts){cx.globalAlpha=Math.max(0,Math.min(1,p.life*2));cx.fillStyle=p.col;ell(cx,p.x,p.y,p.r,p.r);cx.fill()}
  cx.globalAlpha=1;cx.textAlign='center';
- for(const f of G.floats){cx.globalAlpha=Math.min(1,f.life*1.5);cx.font=`700 ${f.size}px "Gowun Dodum",sans-serif`;cx.lineWidth=5;cx.strokeStyle='rgba(20,18,26,.85)';cx.strokeText(f.text,f.x,f.y);cx.fillStyle=f.col;cx.fillText(f.text,f.x,f.y)}
+ for(const f of G.floats){cx.globalAlpha=Math.min(1,f.life*1.5);cx.font=`700 ${f.size}px "Noto Sans KR",sans-serif`;cx.lineWidth=5;cx.strokeStyle='rgba(20,18,26,.85)';cx.strokeText(f.text,f.x,f.y);cx.fillStyle=f.col;cx.fillText(f.text,f.x,f.y)}
  cx.globalAlpha=1;cx.restore();
  if(G.flash>0){const g=cx.createRadialGradient(W/2,H/2,H*.25,W/2,H/2,H*.9);g.addColorStop(0,'rgba(224,60,40,0)');g.addColorStop(1,`rgba(224,40,30,${Math.min(.75,G.flash*1.4)})`);cx.fillStyle=g;cx.fillRect(0,0,W,H)}
  if(G.fade>0){cx.fillStyle=`rgba(243,234,214,${Math.min(1,G.fade)})`;cx.fillRect(0,0,W,H)}
@@ -2577,7 +2600,7 @@ $('#jumpBtn').addEventListener('pointerdown',ev=>{ev.preventDefault();initAudio(
 $('#slideBtn').addEventListener('pointerdown',ev=>{ev.preventDefault();initAudio();slide()});
 $('#mute').addEventListener('click',ev=>{muted=!muted;ev.currentTarget.setAttribute('aria-pressed',muted);ev.currentTarget.setAttribute('aria-label',muted?'소리 켜기':'소리 끄기')});
 
-if(document.fonts&&document.fonts.load){['21px "Noto Serif KR"','66px "Nanum Brush Script"','15px "Gowun Dodum"'].forEach(f=>document.fonts.load(f,'藥蔘符筆 한문 원정기').catch(()=>{}))}
+if(document.fonts&&document.fonts.load){['21px "Noto Serif KR"','66px "Nanum Brush Script"','15px "Noto Sans KR"'].forEach(f=>document.fonts.load(f,'藥蔘符筆 한문 원정기').catch(()=>{}))}
 G.hp=G.maxHp=CH().hp;
 showTitle();
 let last=performance.now();
