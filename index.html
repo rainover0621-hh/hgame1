@@ -904,7 +904,8 @@ const URLSET=(()=>{
  const st=Math.max(1,Math.min(5,parseInt(p.get('stage'),10)||1));
  /* 시험용: ?boss=4 면 4장 보스전만 바로 한다 */
  const bs=parseInt(p.get('boss'),10);const boss=bs>=1&&bs<=5?bs-1:-1;
- return {u,c,lock:p.get('lock')==='1'&&(u.length>0||c.length>0),stage:boss>=0?boss:st-1,boss};
+ /* 시험용: ?perks=1 이면 검토 중인 캐릭터 능력(술사 회복 · 궁수 회피 · 검객 불굴)을 켠다 */
+ return {u,c,lock:p.get('lock')==='1'&&(u.length>0||c.length>0),stage:boss>=0?boss:st-1,boss,perks:p.get('perks')==='1'};
 })();
 
 /* ───────── 규칙 ───────── */
@@ -1250,6 +1251,11 @@ function domShake(){arena.classList.remove('shake');void arena.offsetWidth;arena
 function heal(n){const before=G.hp;G.hp=Math.min(G.maxHp,G.hp+n);floater(`HP +${G.hp-before}`,'#5fd3a9')}
 function damage(n,fromQuiz){
  if(fromQuiz&&G.inv.shield>0){G.inv.shield--;P.shieldFx=1.2;floater('부적이 막았다!','#e9b949');sfx('block');return 0}
+ if(URLSET.perks){
+  if(!fromQuiz&&G.char==='swift'&&rand()<.2){floater('회피!','#7fe0ff',PX,GROUND-170,30);sfx('jump2');P.inv=Math.max(P.inv,.4);return 0}
+  if(G.char==='power'&&G.hp<=G.maxHp*.3){n=Math.max(1,Math.round(n*.5));floater('불굴','#ffb070',PX,GROUND-190,20)}
+  if(!fromQuiz&&G.char==='brain'&&rand()<.2)setTimeout(()=>{if(G.hp>0)heal(10)},250);
+ }
  G.hp=Math.max(0,G.hp-n);G.shake=fromQuiz?.5:.25;G.flash=fromQuiz?.55:.3;P.hurt=.9;P.knock=1;
  floater(`-${n}`,'#ff6a4d',PX,GROUND-160,fromQuiz?40:28);domShake();return n;
 }
@@ -1671,6 +1677,7 @@ function showTitle(){
   <p class="lede">글자를 먹고 사는 요괴들이 세상의 한자를 삼키기 시작했다. 주인공을 골라 도화 마을에서 창해 용궁까지 다섯 고개를 넘으며, 배운 한문으로 요괴를 물리치자.</p>
   <h2>주인공 고르기</h2>
   <div class="chars">${Object.keys(CHARS).map(charCard).join('')}</div>
+  ${URLSET.perks?`<p class="keys" style="color:var(--gold);margin-top:12px">시험 능력 켜짐: 술사 맞을 때 20% 확률로 HP +10 · 궁수 장애물 · 탄막 20% 회피 · 검객 HP 30% 이하일 때 받는 피해 절반(불굴)</p>`:''}
   ${URLSET.boss>=0?`<p class="keys" style="color:var(--gold);margin-top:12px">시험 모드: ${STAGES[URLSET.boss].num} 보스(${MOBS[STAGES[URLSET.boss].boss].name})전만 한다.</p>`:URLSET.stage>0?`<p class="keys" style="color:var(--gold);margin-top:12px">시험 모드: ${STAGES[URLSET.stage].num} ${STAGES[URLSET.stage].name}부터 시작한다.</p>`:''}
   <div class="row" style="margin-top:14px"><button class="go" id="startBtn" data-act="start">원정 떠나기</button><span class="best">${best?`최고 기록 ${best}점 · `:''}<span id="rangeN">${rangeCount()}</span>문제에서 출제</span></div>
   ${URLSET.lock?`<h2>출제 범위</h2>
