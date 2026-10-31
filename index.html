@@ -811,9 +811,9 @@ const MOBS={
 const STAGES=[
  {id:'peach',num:'제1장',name:'도화 마을',han:'桃花村',enemies:[1,1,2,1],mobs:['wasp','plant'],boss:'spider',obs:['rock','puddle','thorns','web','crow']},
  {id:'bamboo',num:'제2장',name:'월하 대숲',han:'月下竹林',enemies:[2,1,2,2],mobs:['boar','fox'],boss:'wolf',obs:['spikes','log','crow','trap','thorns']},
- {id:'valley',num:'제3장',name:'귀곡',han:'鬼谷',enemies:[2,3,1],mobs:['wisp','shadow','jiangshi'],boss:'ghost',obs:['tomb','puddle','web','boulder','crow']},
- {id:'fire',num:'제4장',name:'화염 요마성',han:'火焰妖魔城',enemies:[3,2,3],mobs:['goblin','golem','bulgasari'],boss:'demon',obs:['fireball','boulder','spikes','trap','rock']},
- {id:'storm',num:'제5장',name:'창해 용궁',han:'滄海龍宮',enemies:[3,3,3],mobs:['imugi','firebird'],boss:'dragon',obs:['wave','crow','boulder','puddle','fireball']},
+ {id:'valley',num:'제3장',name:'귀곡',han:'鬼谷',enemies:[2,3,1,2,3],mobs:['wisp','shadow','jiangshi'],boss:'ghost',obs:['tomb','puddle','web','boulder','crow']},
+ {id:'fire',num:'제4장',name:'화염 요마성',han:'火焰妖魔城',enemies:[3,2,3,2,3],mobs:['goblin','golem','bulgasari'],boss:'demon',obs:['fireball','boulder','spikes','trap','rock']},
+ {id:'storm',num:'제5장',name:'창해 용궁',han:'滄海龍宮',enemies:[3,2,3,3,3],mobs:['imugi','firebird'],boss:'dragon',obs:['wave','crow','boulder','puddle','fireball']},
 ];
 /* 보스: 문제를 하나 낼 때마다 스펠카드 탄막 한 장. pat은 탄막 종류, mouth는 탄이 나오는 위치 */
 const BOSSES={
@@ -860,12 +860,12 @@ const inRange=q=>G.units.has(q.u)&&G.cats.has(q.c);
 const rangeCount=()=>BANK.filter(inRange).length;
 
 /* 문제 고르기
-   1) 성어(한자성어 · 고사성어)와 다른 문제가 함께 있으면 1~3장은 성어 절반, 4~5장은 IDIOM_LATE 비중
-   2) 1~3장은 1~8과(부수와 자전 포함), 4~5장은 13과 이후 단원을 STAGE_PREF 비중으로 (4~5장은 이 규칙이 1번보다 먼저)
+   1~2) 성어 · 1~8과(부수와 자전 포함)의 다른 문제 · 13과 이후 단원을 MIX_EARLY(1~3장) / MIX_LATE(4~5장) 비중으로
    3) 단원을 먼저 고르게 뽑은 뒤 그 안에서 문제를 뽑아 한 단원에 몰리지 않게
    4) 이미 낸 문제는 이 기기에 기억해 두고(다시 도전해도) 범위를 다 돌 때까지 다시 내지 않는다
    strict면 난이도를 꼭 지킨다(보스) */
-const EARLY_UNITS=new Set(['1','2','자전','3','4','5','6','7','8']),STAGE_PREF=.8,IDIOM_LATE=.3;
+const EARLY_UNITS=new Set(['1','2','자전','3','4','5','6','7','8']);
+const MIX_EARLY={idiom:.5,early:.25,late:.25},MIX_LATE={idiom:.3,early:.1,late:.6}; /* 1~3장 / 4~5장 출제 비중 */
 const isIdiom=q=>q.c==='한자성어'||q.c==='고사성어';
 function saveSeen(){store.set('hanmun-seen',JSON.stringify([...G.used].slice(-400)))}
 function loadSeen(){try{const v=JSON.parse(store.get('hanmun-seen'));if(Array.isArray(v))v.forEach(id=>BANK[id]&&G.used.add(id))}catch(e){}}
@@ -878,19 +878,11 @@ function pick(lvls,strict){
  const atLv=q=>lvls.includes(q.l);
  let c=pool.filter(atLv);if(!c.length)c=all.filter(atLv);if(!c.length)c=pool;
  const narrow=pred=>{let r=c.filter(pred);if(!r.length)r=pool.filter(q=>atLv(q)&&pred(q));if(!r.length)r=all.filter(q=>atLv(q)&&pred(q));if(!r.length&&!strict)r=pool.filter(pred);return r};
- const early=G.stage<3,pref=q=>EARLY_UNITS.has(q.u)===early;
- const byStage=()=>{const r=narrow(pref),o=narrow(q=>!pref(q));if(r.length&&o.length)c=rand()<STAGE_PREF?r:o;else if(r.length)c=r};
- const byIdiom=()=>{if(c.some(isIdiom)&&c.some(q=>!isIdiom(q))){const want=rand()<.5;c=c.filter(q=>isIdiom(q)===want)}
-  else if(all.some(isIdiom)&&all.some(q=>!isIdiom(q))&&early){const want=rand()<.5,r=narrow(q=>isIdiom(q)===want);if(r.length)c=r}};
- /* 1~3장은 성어 절반을 먼저, 4~5장은 13과 이후 단원 비중을 먼저 */
- if(early){byIdiom();const r=c.filter(pref);if(r.length&&r.length<c.length)c=rand()<STAGE_PREF?r:c.filter(q=>!pref(q))}
- else{
-  /* 4~5장: 성어 IDIOM_LATE 비중, 나머지는 13과 이후 단원 위주 */
-  const hasI=all.some(isIdiom),hasN=all.some(q=>!isIdiom(q));
-  let idi=false;
-  if(hasI&&hasN){const want=rand()<IDIOM_LATE,r=narrow(q=>isIdiom(q)===want);if(r.length){c=r;idi=want}}
-  if(!idi)byStage();
- }
+ /* 세 묶음(성어 · 1~8과의 다른 문제 · 13과 이후) 가운데 장별 비중으로 하나를 고른다. 범위에 없는 묶음은 빼고 비중을 다시 나눈다 */
+ const W=G.stage<3?MIX_EARLY:MIX_LATE;
+ const groups=[[W.idiom,isIdiom],[W.early,q=>!isIdiom(q)&&EARLY_UNITS.has(q.u)],[W.late,q=>!isIdiom(q)&&!EARLY_UNITS.has(q.u)]]
+  .map(([w,f])=>[w,narrow(f)]).filter(([w,r])=>w>0&&r.length);
+ if(groups.length){let t=rand()*groups.reduce((s,[w])=>s+w,0);for(const [w,r] of groups){t-=w;if(t<0){c=r;break}}if(t>=0)c=groups[groups.length-1][1]}
  const units=[...new Set(c.map(q=>q.u))],u=units[Math.floor(rand()*units.length)];c=c.filter(q=>q.u===u);
  const q=c[Math.floor(rand()*c.length)];G.used.delete(q.id);G.used.add(q.id);saveSeen();return q;
 }
@@ -1226,7 +1218,7 @@ function sendResult(btn){
 }
 /* ───────── 이야기: 학생이 과거로 환생해 한문으로 요괴를 물리친다 ───────── */
 /* 대사의 {name}은 고른 주인공 이름, {name은}처럼 쓰면 받침에 맞는 조사가 붙는다.
-   선택지 fx: hp 회복/감소 · full 완전 회복 · maxhp 최대 HP · shield 부적 · hint 붓 · score 점수 · time 제한 시간 · dmg 받는 피해 배율 · mul 점수 배율
+   선택지 fx: hp 회복/감소 · full 완전 회복 · half 최대 HP의 50% 회복 · maxhp 최대 HP · shield 부적 · hint 붓 · score 점수 · time 제한 시간 · dmg 받는 피해 배율 · mul 점수 배율
    quiz가 있는 선택지는 한문 문제를 맞히면 win, 틀리면 lose */
 const NPC={
  hun:{name:'훈장',han:'訓',col:'#2f8f80',sub:'도화 마을 서당',img:'hun',pos:'50% 34%'},
@@ -1282,7 +1274,7 @@ const STORY={
    ['jang','내 갑옷을 가져가겠나, 아니면 내 군사의 호위를 받겠나?'],
   ],choices:[
    {label:'장수의 갑옷을 입는다',fx:{dmg:.75,time:-3},msg:'갑옷이 든든하다. 다만 무거워서 생각할 틈이 줄었다.'},
-   {label:'군사의 호위를 받는다',fx:{full:1,shield:1},msg:'군사들 덕분에 푹 쉬었다. 기운이 가득 찼다.'},
+   {label:'군사의 호위를 받는다',fx:{half:1,shield:1},msg:'군사들 덕분에 한숨 돌렸다. 기운이 절반쯤 돌아왔다.'},
    {label:'장수의 병법서를 읽는다',quiz:[3],win:{fx:{mul:1.2,hint:1},msg:'병법의 이치를 깨달았다. 한 수 앞이 보인다.'},lose:{fx:{hp:-20},msg:'어려운 병법서에 머리가 지끈거렸다.'}},
   ]},
  ],
@@ -1295,13 +1287,13 @@ const STORY={
 };
 function fillName(t){const n=CH().name;return t.replace(/\{name(은|는|이|가|을|를|과|와)?\}/g,(m,j)=>{if(!j)return n;const pair={은:'은는',는:'은는',이:'이가',가:'이가',을:'을를',를:'을를',과:'과와',와:'과와'}[j];return n+josa(n,pair[0],pair[1])})}
 function fxList(fx){const o=[],sg=v=>v>0?'+'+v:'−'+Math.abs(v);
- if(fx.full)o.push(['HP 완전 회복',1]);if(fx.hp)o.push([`HP ${sg(fx.hp)}`,fx.hp>0]);if(fx.maxhp)o.push([`최대 HP ${sg(fx.maxhp)}`,fx.maxhp>0]);
+ if(fx.full)o.push(['HP 완전 회복',1]);if(fx.half)o.push(['HP 50% 회복',1]);if(fx.hp)o.push([`HP ${sg(fx.hp)}`,fx.hp>0]);if(fx.maxhp)o.push([`최대 HP ${sg(fx.maxhp)}`,fx.maxhp>0]);
  if(fx.shield)o.push([`부적 +${fx.shield}`,1]);if(fx.hint)o.push([`붓 +${fx.hint}`,1]);if(fx.score)o.push([`점수 ${sg(fx.score)}`,fx.score>0]);
  if(fx.time)o.push([`제한 시간 ${sg(fx.time)}초`,fx.time>0]);if(fx.dmg)o.push([`받는 피해 ${fx.dmg<1?'−':'+'}${Math.round(Math.abs(1-fx.dmg)*100)}%`,fx.dmg<1]);
  if(fx.mul)o.push([`정답 점수 ×${fx.mul}`,fx.mul>1]);return o}
 const fxChips=(fx,pre='')=>fxList(fx).map(([t,g])=>`<span class="fx ${g?'good':'bad'}">${pre}${t}</span>`).join('');
 function applyFx(fx){
- if(fx.full){heal(G.maxHp)}
+ if(fx.full){heal(G.maxHp)}if(fx.half){heal(Math.round(G.maxHp*.5))}
  if(fx.maxhp){G.maxHp=Math.max(40,G.maxHp+fx.maxhp);if(fx.maxhp<0)G.hp=Math.min(G.hp,G.maxHp)}
  if(fx.hp){if(fx.hp>0)heal(fx.hp);else{G.hp=Math.max(1,G.hp+fx.hp);floater(`${fx.hp}`,'#ff6a4d')}}
  if(fx.shield)G.inv.shield+=fx.shield;if(fx.hint)G.inv.hint+=fx.hint;if(fx.score)G.score=Math.max(0,G.score+fx.score);
