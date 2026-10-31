@@ -943,18 +943,19 @@ const OBS={
  trap:{name:'덫',dmg:7,w:26,h:16},
  tomb:{name:'비석',dmg:8,w:22,h:52},
  boulder:{name:'굴러오는 바위',dmg:10,w:28,h:50,vx:-200},
- fireball:{name:'불덩이',dmg:9,w:22,air:true,vx:-240,bob:[26,5.5]},
+ fireball:{name:'불덩이',dmg:9,w:22,air:true,vx:-240,bob:[30,3.2]},
  wave:{name:'파도',dmg:7,w:40,h:38,vx:-110},
  /* 움직이는 함정(dyn): 높이가 시간에 따라 바뀌고, 0일 때는 지나가도 안전하다 */
  spikefloor:{name:'가시 바닥',dmg:9,w:40,h:40,dyn:'cycle'},
  fallrock:{name:'떨어지는 돌',dmg:10,w:28,h:42,dyn:'fall'},
+ lavadrop:{name:'떨어지는 용암',dmg:10,w:30,h:36,dyn:'fall'},
  geyser:{name:'물줄기',dmg:9,w:28,h:128,dyn:'geyser'},
  bolt:{name:'번개',dmg:11,w:36,h:26,dyn:'bolt'},
- ghostfly:{name:'떠도는 귀신',dmg:8,w:30,air:true,vx:-340,bob:[40,4.2]},
+ ghostfly:{name:'떠도는 귀신',dmg:8,w:30,air:true,vx:-340,bob:[40,2.6]},
  scale:{name:'용의 비늘',dmg:10,w:0,air:true,dyn:'scale'},
 };
 /* 복합 배치 확률과 섞는 장애물 (3장: 앞 귀신 · 위 돌, 4장: 앞 불덩이 · 위 돌, 5장: 위 비늘 · 앞 불덩이) */
-const MIX=[null,null,{p:.35,set:['ghostfly','fallrock']},{p:.35,set:['fireball','fallrock']},{p:.4,set:['scale','fireball']}];
+const MIX=[null,null,{p:.35,set:['ghostfly','fallrock']},{p:.35,set:['fireball','lavadrop']},{p:.4,set:['scale','fireball']}];
 /* 장별 함정 속도 (3장 → 5장으로 갈수록 빠르고 촉박하게). 0 · 1장 칸은 쓰지 않는다 */
 const HAZ=[null,null,
  {cycle:1.45,fall:[300,380]},
@@ -975,7 +976,7 @@ const STAGES=[
  {id:'peach',num:'제1장',name:'도화 마을',han:'桃花村',enemies:[1,1,2,1],mobs:['wasp','plant'],boss:'spider',obs:['rock','puddle','thorns','web','crow']},
  {id:'bamboo',num:'제2장',name:'월하 대숲',han:'月下竹林',enemies:[2,1,2,2],mobs:['boar','fox'],boss:'wolf',obs:['spikes','log','crow','trap','thorns']},
  {id:'valley',num:'제3장',name:'귀곡',han:'鬼谷',enemies:[2,3,1,2,3],mobs:['wisp','shadow','jiangshi'],boss:'ghost',obs:['tomb','puddle','web','boulder','crow','spikefloor','fallrock','ghostfly'],obsW:{spikefloor:5,boulder:5.6,tomb:4.9,crow:3.9,web:3.3,puddle:3.2,fallrock:3.5,ghostfly:7}},
- {id:'fire',num:'제4장',name:'화염 요마성',han:'火焰妖魔城',enemies:[3,2,3,2,3],mobs:['goblin','golem','bulgasari'],boss:'demon',obs:['fireball','boulder','spikes','trap','rock','spikefloor','fallrock'],obsW:{spikefloor:7.2,fallrock:6.5,fireball:3.8,rock:5,trap:5,spikes:4,boulder:4}},
+ {id:'fire',num:'제4장',name:'화염 요마성',han:'火焰妖魔城',enemies:[3,2,3,2,3],mobs:['goblin','golem','bulgasari'],boss:'demon',obs:['fireball','boulder','spikes','trap','rock','spikefloor','lavadrop'],obsW:{spikefloor:7.2,lavadrop:6.5,fireball:3.8,rock:5,trap:5,spikes:4,boulder:4}},
  {id:'storm',num:'제5장',name:'창해 용궁',han:'滄海龍宮',enemies:[3,2,3,3,3],mobs:['imugi','firebird'],boss:'dragon',obs:['wave','crow','boulder','puddle','fireball','geyser','bolt','scale'],obsW:{fireball:5,wave:10.2,geyser:7.9,bolt:8.1,scale:8,crow:4.6,boulder:3.8,puddle:4}},
 ];
 /* 보스: 문제를 하나 낼 때마다 스펠카드 탄막 한 장. pat은 탄막 종류, mouth는 탄이 나오는 위치 */
@@ -1082,7 +1083,9 @@ function pickMob(S,l){const c=S.mobs.filter(m=>MOBS[m].lv===l);const p=c.length?
 const DIFF=[{n:[6,7],sp:330,combo:0},{n:[7,8],sp:310,combo:.18},{n:[10,12],sp:233,combos:5,pre:380,post:280},{n:[9,11],sp:274,combos:5,pre:380,post:280},{n:[12,15],sp:228,combos:5,pre:380,post:280}];
 const COMBO_OK=['rock','trap','spikes','thorns','puddle'],TRIPLE_OK=['rock','trap'];
 /* 움직이는 장애물은 화면에 들어온 뒤 움직이므로, 계획한 자리에서 만나도록 그만큼 앞에 둔다 */
-function placeObs(t,xm){const v=Math.abs(OBS[t].vx||0);addObs(t,v?xm+v*(W+40-PX)/(280+v):xm)}
+/* 앞에서 날아오는 장애물은 하나하나 빠르기가 다르다(기본의 0.85~1.45배). 그래도 xm에서 주인공과 만나도록 놓는다 */
+function placeObs(t,xm){const O=OBS[t],mul=O.air&&O.vx?.85+rand()*.6:1,v=Math.abs(O.vx||0)*mul,run=280+([0,0,10,22,35][G.stage]||0);
+ const e=addObs(t,v?xm+v*(W+40-PX)/(run+v):xm);e.vx=(O.vx||0)*mul;return e}
 function planGap(S,i,x0,combos=0){
  const D=DIFF[i],n=D.n[0]+Math.floor(rand()*(D.n[1]-D.n[0]+1)),itemAt=Math.floor(n/2);
  let x=x0+(D.pre??560),prevAir=null;
@@ -1105,7 +1108,7 @@ function planGap(S,i,x0,combos=0){
   if(!air&&!OBS[t].vx&&t!=='spikefloor'&&MIX[i]&&rand()<MIX[i].p){
    const m=MIX[i].set[Math.floor(rand()*MIX[i].set.length)];
    if(m==='scale'){const e=addObs('scale',x);e.trig=(HAZ[4].scale[0]+HAZ[4].scale[1])/2}
-   else if(m==='fallrock'){const e=addObs('fallrock',x+230+rand()*50);e.trig=Math.max(e.trig,300)}
+   else if(m==='fallrock'||m==='lavadrop'){const e=addObs(m,x+230+rand()*50);e.trig=Math.max(e.trig,300)}
    else placeObs(m,x+70+rand()*40);
   }
   prevAir=air;
@@ -1119,7 +1122,7 @@ function planGap(S,i,x0,combos=0){
 function placeCombo(i,x){
  const S=STAGES[i],ground=S.obs.filter(t=>!OBS[t].air&&!OBS[t].vx&&!OBS[t].dyn),g=()=>ground.length?ground[Math.floor(rand()*ground.length)]:'rock';
  const front=i===2?'ghostfly':'fireball',kind=['ud','uf','fd'][Math.floor(rand()*3)];
- const top=xx=>{if(i===4){const e=addObs('scale',xx);e.trig=(HAZ[4].scale[0]+HAZ[4].scale[1])/2}else{const e=addObs('fallrock',xx);e.trig=Math.max(e.trig,300)}};
+ const top=xx=>{if(i===4){const e=addObs('scale',xx);e.trig=(HAZ[4].scale[0]+HAZ[4].scale[1])/2}else{const e=addObs(i===3?'lavadrop':'fallrock',xx);e.trig=Math.max(e.trig,300)}};
  if(kind==='ud'){addObs(g(),x);top(i===4?x:x+240);return i===4?40:280}
  if(kind==='uf'){top(x);placeObs(front,x+(i===4?60:300));return 320}
  placeObs(front,x);addObs(g(),x+180);return 220;
@@ -1285,6 +1288,13 @@ function interact(){
  }
 }
 /* 위아래로 출렁이며 날아오는 공중 장애물(bob: [진폭, 빠르기]): 지금 높이 차이 */
+/* 출렁이는 장애물의 높이 단서: 땅에 그림자(높을수록 작고 옅게), 낮으면 붉은 테(점프), 높으면 푸른 테(숙이기) */
+function bobCue(e,sx,cy,r){
+ const b=OBS[e.type].bob;if(!b)return;const k=bobY(e)/b[0]; /* -1 높음 ~ 1 낮음 */
+ cx.fillStyle=`rgba(0,0,0,${.18+.17*(k+1)/2})`;ell(cx,sx,GROUND+4,14+10*(k+1)/2,4+2*(k+1)/2);cx.fill();
+ cx.strokeStyle='rgba(255,255,255,.18)';cx.setLineDash([3,6]);cx.lineWidth=1.5;cx.beginPath();cx.moveTo(sx,cy+r);cx.lineTo(sx,GROUND);cx.stroke();cx.setLineDash([]);
+ cx.strokeStyle=k>.15?`rgba(255,70,50,${.5+.4*k})`:k<-.15?`rgba(90,190,255,${.5-.4*k})`:'rgba(255,255,255,.25)';cx.lineWidth=3;ell(cx,sx,cy,r,r);cx.stroke();
+}
 function bobY(e,t=G.t){const b=OBS[e.type].bob;return b?Math.sin(t*b[1]+e.seed*2)*b[0]:0}
 /* 움직이는 함정 갱신: hNow가 지금 부딪히는 높이(0이면 안전) */
 function updHaz(e,dt,moving){
@@ -1318,7 +1328,7 @@ const josa=(w,a,b)=>(w.charCodeAt(w.length-1)-0xAC00)%28?a:b;
 function hitObs(e,O){
  const C=CH(),n=Math.max(1,Math.round(O.dmg*C.obsMul*G.mod.dmg));
  damage(n,false);e.fling=.8;
- if(O.dyn&&e.type!=='fallrock'){sfx('hit');floater(`${O.name}에 당했다`,'#f1ebdc',PX,GROUND-200,18)}
+ if(O.dyn&&e.type!=='fallrock'&&e.type!=='lavadrop'){sfx('hit');floater(`${O.name}에 당했다`,'#f1ebdc',PX,GROUND-200,18)}
  else if(C.obsMul<1){sfx('smash');floater(`${O.name}${josa(O.name,'을','를')} 부쉈다`,'#f1ebdc',PX,GROUND-200,18);burst(e.x-G.cam,GROUND-20,'#6b6670',12)}
  else{sfx('hit');floater(`${O.name}에 부딪혔다`,'#f1ebdc',PX,GROUND-200,18)}
 }
@@ -2117,6 +2127,21 @@ function drawHaz(e,sx){
   cx.fillStyle='#46414e';poly(cx,[18,-32,29,4,8,4,10,-12]);cx.fill();
   cx.strokeStyle='rgba(20,16,24,.6)';cx.lineWidth=1.5;cx.beginPath();cx.moveTo(-6,-36);cx.lineTo(0,-20);cx.lineTo(-8,-8);cx.stroke();
   cx.restore();
+ }else if(e.type==='lavadrop'){
+  if(e.t<0)return;
+  const k=Math.min(1,e.t/.42),fy=e.t<.42?-(1-k*k)*520:0;
+  cx.fillStyle=`rgba(255,120,40,${.15+.3*k})`;ell(cx,sx,G0+3,10+26*k,4+4*k);cx.fill();
+  if(e.t<.42){
+   for(let j=1;j<6;j++){cx.fillStyle=`rgba(255,${150-j*15},40,${.5-j*.08})`;ell(cx,sx,G0+fy-14-j*14,10-j,12-j);cx.fill()}
+   const g=cx.createRadialGradient(sx-4,G0+fy-18,2,sx,G0+fy-14,20);g.addColorStop(0,'#fff3b0');g.addColorStop(.4,'#ff9a2a');g.addColorStop(1,'#b8280f');
+   cx.fillStyle=g;cx.beginPath();cx.moveTo(sx,G0+fy-40);cx.quadraticCurveTo(sx+18,G0+fy-14,sx,G0+fy);cx.quadraticCurveTo(sx-18,G0+fy-14,sx,G0+fy-40);cx.fill();
+  }else{
+   const t=G.t*3+e.seed,cool=Math.min(1,(e.t-.42)/3);
+   cx.fillStyle=lgrad(cx,0,G0-34,0,G0+4,[[0,mix('#ffb040','#5a2a1a',cool)],[.6,mix('#e0401a','#3a1a14',cool)],[1,'#2a0c08']]);
+   cx.beginPath();cx.moveTo(sx-30,G0+4);cx.quadraticCurveTo(sx-26,G0-22,sx-8,G0-30-Math.sin(t)*3);cx.quadraticCurveTo(sx+6,G0-36,sx+18,G0-24);cx.quadraticCurveTo(sx+30,G0-12,sx+30,G0+4);cx.closePath();cx.fill();
+   cx.strokeStyle=`rgba(255,220,120,${.8-cool*.5})`;cx.lineWidth=2;cx.beginPath();cx.moveTo(sx-14,G0-20);cx.lineTo(sx-4,G0-10);cx.lineTo(sx+8,G0-22);cx.stroke();
+   if(G.state==='run'&&rand()<.25)G.parts.push({x:sx+(rand()-.5)*40,y:G0-20,vx:(rand()-.5)*40,vy:-60-rand()*60,r:2+rand()*2,life:.5,col:'#ff9a3a'});
+  }
  }else if(e.type==='geyser'){
   const ph=e.ph||0,warn=ph>.5&&ph<.68,h=e.hNow;
   cx.fillStyle=sphere(cx,sx,G0,30,'#2a5a7a');ell(cx,sx,G0+2,32,8);cx.fill();
@@ -2836,7 +2861,7 @@ function drawObs(e){
  let fy=0;
  if(e.fling>0){const k=1-e.fling/.8;cx.globalAlpha=1-k;fy=-Math.sin(k*Math.PI)*60;cx.translate(sx+k*140,GROUND+fy);cx.rotate(k*4);cx.translate(-sx,-GROUND)}
  if(!O.air&&!O.dyn&&!(e.fling>0))shadow(cx,sx,GROUND+4,O.w+10,.3);
- if(O.air&&!O.dyn&&e.type!=='web'&&!(e.fling>0))shadow(cx,sx,GROUND+4,20,.16);
+ if(O.air&&!O.dyn&&!O.bob&&e.type!=='web'&&!(e.fling>0))shadow(cx,sx,GROUND+4,20,.16);
  if(e.type==='rock'){
   cx.fillStyle='#55505c';poly(cx,[sx-26,GROUND+4,sx-20,GROUND-22,sx-4,GROUND-36,sx+16,GROUND-28,sx+27,GROUND+4]);cx.fill();
   cx.fillStyle='#8e8996';poly(cx,[sx-20,GROUND-22,sx-4,GROUND-36,sx+4,GROUND-16,sx-12,GROUND-8]);cx.fill();
@@ -2897,7 +2922,7 @@ function drawObs(e){
   cx.strokeStyle='rgba(30,26,36,.5)';cx.lineWidth=2;cx.beginPath();cx.moveTo(-10,-14);cx.lineTo(4,-2);cx.lineTo(-2,12);cx.moveTo(8,-18);cx.lineTo(14,-6);cx.stroke();cx.restore();
   if(!(e.fling>0)&&G.state==='run'&&rand()<.4)G.parts.push({x:sx+r,y:GROUND+2,vx:60+rand()*60,vy:-50-rand()*60,r:2+rand()*3,life:.35,col:'rgba(150,130,110,.7)'});
  }else if(e.type==='fireball'){
-  const cy=GROUND-98+bobY(e);
+  const cy=GROUND-98+bobY(e);bobCue(e,sx,cy,20);
   for(let k=0;k<6;k++){const tx=sx+10+k*12,a=1-k/6;cx.fillStyle=`rgba(255,${120+k*15},40,${a*.6})`;ell(cx,tx,GROUND-98+bobY(e,G.t-k*.035)+Math.sin(G.t*20+k)*2,12*a+3,9*a+2);cx.fill()}
   const g=cx.createRadialGradient(sx-4,cy-3,2,sx,cy,18);g.addColorStop(0,'#fff6c0');g.addColorStop(.4,'#ffb030');g.addColorStop(1,'#d8401a');cx.fillStyle=g;ell(cx,sx,cy,16,14);cx.fill();
   if(G.state==='run'&&rand()<.5)G.parts.push({x:sx+14,y:cy,vx:60,vy:-20-rand()*40,r:2+rand()*2,life:.4,col:'#ff9a3a'});
@@ -2919,7 +2944,7 @@ function drawObs(e){
   cx.fillStyle='#141218';cx.beginPath();cx.moveTo(sx-2,cy);cx.quadraticCurveTo(sx-16,cy+26*fl,sx-30,cy+28*fl);cx.quadraticCurveTo(sx-18,cy+8*fl,sx-6,cy+4);cx.closePath();cx.fill();
   if(G.state==='run'&&rand()<.15)G.parts.push({x:sx+20,y:cy,vx:30,vy:20,r:2+rand()*2,life:.5,col:'#141218'});
  }else if(e.type==='ghostfly'){
-  const cy=GROUND-98+bobY(e),k=1.55,fl=Math.sin(G.t*16+e.seed);
+  const cy=GROUND-98+bobY(e),k=1.55,fl=Math.sin(G.t*16+e.seed);bobCue(e,sx,cy,32);
   cx.save();cx.translate(sx,cy);cx.scale(k,k);
   // 찢어진 꼬리
   cx.fillStyle=lgrad(cx,0,0,70,0,[[0,'rgba(200,210,235,.75)'],[1,'rgba(160,170,210,0)']]);
