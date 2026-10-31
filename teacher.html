@@ -66,6 +66,10 @@ label.opt small{margin-left:auto;color:var(--muted);font-variant-numeric:tabular
     <a class="btn" id="save" download="한문요괴원정기_QR.png">QR 저장</a>
     <a class="btn" id="open" target="_blank" rel="noopener">미리 해 보기</a>
    </div>
+   <div class="row" style="align-items:center">
+    <label class="note" for="tstage">미리 해 보기 시작 장</label>
+    <select id="tstage" class="btn"><option value="1">1장부터</option><option value="2">2장</option><option value="3">3장</option><option value="4">4장</option><option value="5">5장</option></select>
+   </div>
    <div class="msg" id="msg" role="status"></div>
   </section>
  </aside>
@@ -96,7 +100,8 @@ function update(){
  if(!allC)p.push('c='+c.join(','));
  if(p.length&&lock)p.push('lock=1');
  const url=GAME+(p.length?'?'+p.join('&'):'');
- $('#url').textContent=url;$('#open').href=url;
+ $('#url').textContent=url;
+ const ts=$('#tstage').value;$('#open').href=ts>1?url+(url.includes('?')?'&':'?')+'stage='+ts:url;
  $('#qr').innerHTML='';
  if(window.qrcode){const q=qrcode(0,'M');q.addData(url);q.make();
   const cell=12,m=4,size=(q.getModuleCount()+m*2)*cell,cv=document.createElement('canvas');cv.width=cv.height=size;
@@ -105,7 +110,7 @@ function update(){
   $('#qr').appendChild(cv);$('#save').href=cv.toDataURL('image/png')}
  $('#copy').disabled=!n;$('#msg').textContent='';
 }
-document.addEventListener('change',e=>{if(e.target.matches('input'))update()});
+document.addEventListener('change',e=>{if(e.target.matches('input,select'))update()});
 document.addEventListener('click',e=>{
  const b=e.target.closest('[data-all],[data-none]');if(!b)return;
  const n=b.dataset.all||b.dataset.none;document.querySelectorAll(`input[name="${n}"]`).forEach(x=>x.checked=!!b.dataset.all);update();

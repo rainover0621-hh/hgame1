@@ -766,7 +766,9 @@ const URLSET=(()=>{
  const ids=UNITS.map(u=>u[0]);
  const u=(p.get('u')||'').split(',').filter(x=>ids.includes(x));
  const c=(p.get('c')||'').split(',').filter(x=>x!==''&&CATS[+x]).map(x=>CATS[+x]);
- return {u,c,lock:p.get('lock')==='1'&&(u.length>0||c.length>0)};
+ /* 시험용: ?stage=3 이면 이야기를 건너뛰고 3장부터 시작한다 */
+ const st=Math.max(1,Math.min(5,parseInt(p.get('stage'),10)||1));
+ return {u,c,lock:p.get('lock')==='1'&&(u.length>0||c.length>0),stage:st-1};
 })();
 
 /* ───────── 규칙 ───────── */
@@ -1068,6 +1070,10 @@ function start(){
  Object.assign(G,{state:'run',stage:0,hp:C.hp,maxHp:C.hp,score:0,combo:0,maxCombo:0,correct:0,total:0,wrong:[],inv:{shield:C.shields,hint:C.hints},
   ents:[],parts:[],floats:[],bullets:[],dodge:null,cur:null,fade:.8,banner:null,mod:{dmg:1,time:0,score:1},journey:[],won:false});
  Object.assign(P,{y:0,vy:0,onGround:true,jumps:0,attack:0,hurt:0,knock:0,shieldFx:0,slide:0,dx:0,inv:0});setMovePad(false);
+ if(URLSET.stage>0){
+  const S=STAGES[URLSET.stage];G.stage=URLSET.stage;G.journey.push(`시험 모드 · ${S.num}부터`);
+  buildStage(G.stage,G.cam+700);G.state='run';G.banner={t:3,d:3,title:`${S.num} · ${S.name}`,sub:'시험 모드: 이 장부터 시작'};return;
+ }
  buildStage(0,G.cam+700);
  startStory(STORY.prologue,()=>{G.state='run';G.banner={t:3,d:3,title:'제1장 · 도화 마을',sub:'돌부리는 점프, 까마귀는 숙여서 피하자'}});
 }
@@ -1424,6 +1430,7 @@ function showTitle(){
   <p class="lede">글자를 먹고 사는 요괴들이 세상의 한자를 삼키기 시작했다. 주인공을 골라 도화 마을에서 창해 용궁까지 다섯 고개를 넘으며, 배운 한문으로 요괴를 물리치자.</p>
   <h2>주인공 고르기</h2>
   <div class="chars">${Object.keys(CHARS).map(charCard).join('')}</div>
+  ${URLSET.stage>0?`<p class="keys" style="color:var(--gold);margin-top:12px">시험 모드: ${STAGES[URLSET.stage].num} ${STAGES[URLSET.stage].name}부터 시작한다.</p>`:''}
   <div class="row" style="margin-top:14px"><button class="go" id="startBtn" data-act="start">원정 떠나기</button><span class="best">${best?`최고 기록 ${best}점 · `:''}<span id="rangeN">${rangeCount()}</span>문제에서 출제</span></div>
   ${URLSET.lock?`<h2>출제 범위</h2>
   <p class="keys" style="margin:0 0 6px">선생님이 정한 범위로 출제된다.</p>
