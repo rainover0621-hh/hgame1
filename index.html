@@ -909,10 +909,10 @@ const URLSET=(()=>{
 
 /* ───────── 규칙 ───────── */
 const LV={
- 1:{name:'下',pts:10,dmg:2,time:20,cls:'l1'},
- 2:{name:'中',pts:20,dmg:3,time:25,cls:'l2'},
- 3:{name:'上',pts:30,dmg:4,time:30,cls:'l3'},
- 4:{name:'보스',pts:50,dmg:6,time:30,cls:'l4'},
+ 1:{name:'下',pts:10,dmg:10,time:20,cls:'l1'},
+ 2:{name:'中',pts:20,dmg:15,time:25,cls:'l2'},
+ 3:{name:'上',pts:30,dmg:20,time:30,cls:'l3'},
+ 4:{name:'보스',pts:50,dmg:25,time:30,cls:'l4'},
 };
 const ITEMS={
  yak:{han:'藥',name:'약첩',desc:'HP +10 회복',col:'#3f9a5e',w:40},
@@ -922,13 +922,13 @@ const ITEMS={
 };
 /* 주인공 3인: 능력치와 생김새 (art는 그림 종류, 초상화는 assets/portraits/{art}.jpg) */
 const CHARS={
- brain:{name:'서윤',title:'견습 술사',age:15,role:'지능형',art:'mage',hp:118,time:8,hints:2,shields:0,dmgMul:1,obsMul:.9,healMul:1,scoreMul:1.1,jumps:1,scale:1.02,
-  abil:['제한 시간 +8초','붓 2자루를 들고 출발','정답 점수 ×1.1','장애물 · 탄막 피해 10% 감소'],stats:{지력:5,체력:2,민첩:3},
+ brain:{name:'서윤',title:'견습 술사',age:15,role:'지능형',art:'mage',hp:120,time:8,hints:2,shields:0,dmgMul:1,obsMul:1,healMul:1,scoreMul:1.1,jumps:1,scale:1.02,
+  abil:['제한 시간 +8초','붓 2자루를 들고 출발','정답 점수 ×1.1'],stats:{지력:5,체력:2,민첩:3},
   look:{skin:'#f3cfae',hair:'#15131a',robe:'#eef1f6',outer:'#2b4a8a',trim:'#c9a24a',pants:'#d9dde6',shoe:'#2a2a3a',sash:'#2b4a8a'}},
- power:{name:'강현',title:'떠돌이 검객',age:16,role:'체력형',art:'sword',hp:142,time:0,hints:0,shields:0,dmgMul:1,obsMul:1,healMul:1,scoreMul:1,jumps:1,scale:1.06,
-  abil:['최대 HP 142 (가장 튼튼함)','장애물을 몸으로 버티며 달린다','다른 능력 없이 체력으로 승부'],stats:{지력:2,체력:5,민첩:2},
+ power:{name:'강현',title:'떠돌이 검객',age:16,role:'체력형',art:'sword',hp:140,time:0,hints:0,shields:0,dmgMul:.95,obsMul:.95,healMul:1,scoreMul:1,jumps:1,scale:1.06,
+  abil:['최대 HP 140 (가장 튼튼함)','받는 피해 5% 감소','장애물을 부수며 달린다'],stats:{지력:2,체력:5,민첩:2},
   look:{skin:'#e8b88f',hair:'#121116',coat:'#222128',inner:'#dcd8cc',sash:'#a8322a',trim:'#c9a24a',pants:'#26252c',shoe:'#18171c',band:'#a8322a'}},
- swift:{name:'하람',title:'바람 궁수',age:14,role:'민첩형',art:'archer',hp:118,time:0,hints:0,shields:1,dmgMul:1,obsMul:1,healMul:1.5,scoreMul:1.05,jumps:2,scale:.98,
+ swift:{name:'하람',title:'바람 궁수',age:14,role:'민첩형',art:'archer',hp:120,time:0,hints:0,shields:1,dmgMul:1,obsMul:1,healMul:1.5,scoreMul:1.05,jumps:2,scale:.98,
   abil:['공중에서 한 번 더 점프','회복 아이템 효과 ×1.5','부적 1장을 들고 출발','정답 점수 ×1.05'],stats:{지력:3,체력:3,민첩:5},
   look:{skin:'#f5d0ae',hair:'#1a1416',jacket:'#a8282a',goreum:'#e9b949',pants:'#f0ebe0',shoe:'#2a1c18',daenggi:'#c8372a'}},
 };
@@ -1338,8 +1338,8 @@ function updHaz(e,dt,moving){
 /* 보기 속 한자는 20% 크게 */
 const hjBig=t=>t.replace(/[\u3400-\u9fff□]+/g,m=>`<span class="ohj">${m}</span>`);
 const josa=(w,a,b)=>(w.charCodeAt(w.length-1)-0xAC00)%28?a:b;
-/* 3~5장은 장애물이 많은 대신 한 번 부딪힐 때 피해를 절반으로 */
-const OBS_STAGE_MUL=[1,1,.5,.5,.5];
+/* 3~5장은 장애물이 많은 대신 한 번 부딪힐 때 피해를 70%로 */
+const OBS_STAGE_MUL=[1,1,.7,.7,.7];
 function hitObs(e,O){
  const C=CH(),n=Math.max(1,Math.round(O.dmg*OBS_STAGE_MUL[G.stage]*C.obsMul*G.mod.dmg));
  damage(n,false);e.fling=.8;
@@ -1634,8 +1634,8 @@ function stageClear(){
   const done=G.stage,beaten=MOBS[STAGES[done].boss].name;
   G.banner={t:2,d:2,title:`${beaten} 격파!`,sub:'누군가 다가온다…'};
   setTimeout(()=>startStory(STORY.stages[done],()=>{
-   G.stage++;const S=STAGES[G.stage];G.fade=1;heal(35);G.state='run';
-   G.banner={t:3.2,d:3.2,title:`${S.num} · ${S.name}`,sub:'한숨 돌리고 다시 길을 떠났다 · HP +35'};
+   G.stage++;const S=STAGES[G.stage];G.fade=1;heal(20);G.state='run';
+   G.banner={t:3.2,d:3.2,title:`${S.num} · ${S.name}`,sub:'한숨 돌리고 다시 길을 떠났다 · HP +20'};
    buildStage(G.stage,G.cam+1400)}),1600);
   G.state='story';
  }else{
@@ -1681,7 +1681,7 @@ function showTitle(){
   <table><thead><tr><th>난이도</th><th>정답 점수</th><th>오답 피해</th><th>제한 시간</th></tr></thead><tbody>
   ${[1,2,3,4].map(k=>`<tr><td><span class="lvl ${LV[k].cls}">${LV[k].name}</span></td><td>${LV[k].pts}점</td><td>HP −${LV[k].dmg}</td><td>${LV[k].time}초</td></tr>`).join('')}
   </tbody></table>
-  <p class="keys" style="margin-top:8px">모험가의 능력에 따라 점수·피해·시간이 달라진다. 빨리 맞힐수록 기본 점수의 최대 50%를 더 받는다. 3연속 정답부터 콤보 보너스 +5점씩(최대 +25). 장이 바뀔 때 주막에서 HP +35.</p>
+  <p class="keys" style="margin-top:8px">모험가의 능력에 따라 점수·피해·시간이 달라진다. 빨리 맞힐수록 기본 점수의 최대 50%를 더 받는다. 3연속 정답부터 콤보 보너스 +5점씩(최대 +25). 장이 바뀔 때 주막에서 HP +20.</p>
   <h2>장애물</h2>
   <table><tbody>
    <tr><td>돌부리 · 먹물 웅덩이</td><td>점프</td><td>HP −5</td></tr>
