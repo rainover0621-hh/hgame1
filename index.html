@@ -1570,7 +1570,7 @@ function showRanking(back){
 }
 /* ───────── 이야기: 학생이 과거로 환생해 한문으로 요괴를 물리친다 ───────── */
 /* 대사의 {name}은 고른 주인공 이름, {name은}처럼 쓰면 받침에 맞는 조사가 붙는다.
-   선택지 fx: hp 회복/감소 · full 완전 회복 · half 최대 HP의 50% 회복 · maxhp 최대 HP · shield 부적 · hint 붓 · score 점수 · time 제한 시간 · dmg 받는 피해 배율 · mul 점수 배율
+   선택지 fx: hp 회복/감소 · full 완전 회복 · half 최대 HP의 50% 회복 · pct 최대 HP의 그 비율만큼 회복 · maxhp 최대 HP · shield 부적 · hint 붓 · score 점수 · time 제한 시간 · dmg 받는 피해 배율 · mul 점수 배율
    quiz가 있는 선택지는 한문 문제를 맞히면 win, 틀리면 lose */
 const NPC={
  hun:{name:'훈장',han:'訓',col:'#2f8f80',sub:'도화 마을 서당',img:'hun',pos:'50% 34%'},
@@ -1625,9 +1625,9 @@ const STORY={
    ['jang','마지막 고개, 창해의 용은 힘으로는 이길 수 없다. 오직 글로써만 상대할 수 있지.'],
    ['jang','내 갑옷을 가져가겠나, 아니면 내 군사의 호위를 받겠나?'],
   ],choices:[
-   {label:'장수의 갑옷을 입는다',fx:{dmg:.75,time:-3},msg:'갑옷이 든든하다. 다만 무거워서 생각할 틈이 줄었다.'},
-   {label:'군사의 호위를 받는다',fx:{half:1,shield:1},msg:'군사들 덕분에 한숨 돌렸다. 기운이 절반쯤 돌아왔다.'},
-   {label:'장수의 병법서를 읽는다',quiz:[3],win:{fx:{mul:1.2,hint:1},msg:'병법의 이치를 깨달았다. 한 수 앞이 보인다.'},lose:{fx:{hp:-20},msg:'어려운 병법서에 머리가 지끈거렸다.'}},
+   {label:'장수의 갑옷을 입는다',fx:{dmg:.85,time:-7},msg:'갑옷이 든든하다. 다만 무거워서 생각할 틈이 줄었다.'},
+   {label:'군사의 호위를 받는다',fx:{pct:.3,shield:1},msg:'군사들 덕분에 한숨 돌렸다. 기운이 조금 돌아왔다.'},
+   {label:'장수의 병법서를 읽는다',quiz:[3],win:{fx:{mul:1.1},msg:'병법의 이치를 깨달았다. 한 수 앞이 보인다.'},lose:{fx:{hp:-20},msg:'어려운 병법서에 머리가 지끈거렸다.'}},
   ]},
  ],
  ending:{lines:[
@@ -1639,13 +1639,13 @@ const STORY={
 };
 function fillName(t){const n=CH().name;return t.replace(/\{name(은|는|이|가|을|를|과|와)?\}/g,(m,j)=>{if(!j)return n;const pair={은:'은는',는:'은는',이:'이가',가:'이가',을:'을를',를:'을를',과:'과와',와:'과와'}[j];return n+josa(n,pair[0],pair[1])})}
 function fxList(fx){const o=[],sg=v=>v>0?'+'+v:'−'+Math.abs(v);
- if(fx.full)o.push(['HP 완전 회복',1]);if(fx.half)o.push(['HP 50% 회복',1]);if(fx.hp)o.push([`HP ${sg(fx.hp)}`,fx.hp>0]);if(fx.maxhp)o.push([`최대 HP ${sg(fx.maxhp)}`,fx.maxhp>0]);
+ if(fx.full)o.push(['HP 완전 회복',1]);if(fx.half)o.push(['HP 50% 회복',1]);if(fx.pct)o.push([`HP ${Math.round(fx.pct*100)}% 회복`,1]);if(fx.hp)o.push([`HP ${sg(fx.hp)}`,fx.hp>0]);if(fx.maxhp)o.push([`최대 HP ${sg(fx.maxhp)}`,fx.maxhp>0]);
  if(fx.shield)o.push([`부적 +${fx.shield}`,1]);if(fx.hint)o.push([`붓 +${fx.hint}`,1]);if(fx.score)o.push([`점수 ${sg(fx.score)}`,fx.score>0]);
  if(fx.time)o.push([`제한 시간 ${sg(fx.time)}초`,fx.time>0]);if(fx.dmg)o.push([`받는 피해 ${fx.dmg<1?'−':'+'}${Math.round(Math.abs(1-fx.dmg)*100)}%`,fx.dmg<1]);
  if(fx.mul)o.push([`정답 점수 ×${fx.mul}`,fx.mul>1]);return o}
 const fxChips=(fx,pre='')=>fxList(fx).map(([t,g])=>`<span class="fx ${g?'good':'bad'}">${pre}${t}</span>`).join('');
 function applyFx(fx){
- if(fx.full){heal(G.maxHp)}if(fx.half){heal(Math.round(G.maxHp*.5))}
+ if(fx.full){heal(G.maxHp)}if(fx.half){heal(Math.round(G.maxHp*.5))}if(fx.pct){heal(Math.round(G.maxHp*fx.pct))}
  if(fx.maxhp){G.maxHp=Math.max(40,G.maxHp+fx.maxhp);if(fx.maxhp<0)G.hp=Math.min(G.hp,G.maxHp)}
  if(fx.hp){if(fx.hp>0)heal(fx.hp);else{G.hp=Math.max(1,G.hp+fx.hp);floater(`${fx.hp}`,'#ff6a4d')}}
  if(fx.shield)G.inv.shield+=fx.shield;if(fx.hint)G.inv.hint+=fx.hint;if(fx.score)G.score=Math.max(0,G.score+fx.score);
