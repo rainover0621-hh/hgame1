@@ -158,6 +158,7 @@ th{color:var(--muted);font-weight:400}
 .opt:disabled:not(.ok):not(.no){opacity:.5}
 .opt span{font-family:var(--body)}
 .nextrow{display:flex;justify-content:flex-end}
+.opt .ohj{font-size:1.2em;line-height:1}
 .tools{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:10px;font-size:13px}
 .hintbtn{border:1px dashed var(--blue);background:transparent;border-radius:8px;padding:6px 10px;font-size:13px}
 .hintbtn:disabled{opacity:.4;cursor:default}
@@ -952,6 +953,8 @@ const OBS={
  ghostfly:{name:'떠도는 귀신',dmg:8,w:30,air:true,vx:-340,bob:[40,4.2]},
  scale:{name:'용의 비늘',dmg:10,w:0,air:true,dyn:'scale'},
 };
+/* 복합 배치 확률과 섞는 장애물 (3장: 앞 귀신 · 위 돌, 4장: 앞 불덩이 · 위 돌, 5장: 위 비늘 · 앞 불덩이) */
+const MIX=[null,null,{p:.35,set:['ghostfly','fallrock']},{p:.35,set:['fireball','fallrock']},{p:.4,set:['scale','fireball']}];
 /* 장별 함정 속도 (3장 → 5장으로 갈수록 빠르고 촉박하게). 0 · 1장 칸은 쓰지 않는다 */
 const HAZ=[null,null,
  {cycle:1.45,fall:[300,380]},
@@ -971,9 +974,9 @@ const MOBS={
 const STAGES=[
  {id:'peach',num:'제1장',name:'도화 마을',han:'桃花村',enemies:[1,1,2,1],mobs:['wasp','plant'],boss:'spider',obs:['rock','puddle','thorns','web','crow']},
  {id:'bamboo',num:'제2장',name:'월하 대숲',han:'月下竹林',enemies:[2,1,2,2],mobs:['boar','fox'],boss:'wolf',obs:['spikes','log','crow','trap','thorns']},
- {id:'valley',num:'제3장',name:'귀곡',han:'鬼谷',enemies:[2,3,1,2,3],mobs:['wisp','shadow','jiangshi'],boss:'ghost',obs:['tomb','puddle','web','boulder','crow','spikefloor','fallrock','ghostfly'],obsW:{spikefloor:7,boulder:5.6,tomb:4.9,crow:3.9,web:3.3,puddle:3.2,fallrock:6.7,ghostfly:7}},
- {id:'fire',num:'제4장',name:'화염 요마성',han:'火焰妖魔城',enemies:[3,2,3,2,3],mobs:['goblin','golem','bulgasari'],boss:'demon',obs:['fireball','boulder','spikes','trap','rock','spikefloor','fallrock'],obsW:{spikefloor:9.2,fallrock:11.8,fireball:8.6,rock:5,trap:5,spikes:4,boulder:4}},
- {id:'storm',num:'제5장',name:'창해 용궁',han:'滄海龍宮',enemies:[3,2,3,3,3],mobs:['imugi','firebird'],boss:'dragon',obs:['wave','crow','boulder','puddle','fireball','geyser','bolt','scale'],obsW:{fireball:11.5,wave:10.2,geyser:7.9,bolt:8.1,scale:8,crow:4.6,boulder:3.8,puddle:4}},
+ {id:'valley',num:'제3장',name:'귀곡',han:'鬼谷',enemies:[2,3,1,2,3],mobs:['wisp','shadow','jiangshi'],boss:'ghost',obs:['tomb','puddle','web','boulder','crow','spikefloor','fallrock','ghostfly'],obsW:{spikefloor:5,boulder:5.6,tomb:4.9,crow:3.9,web:3.3,puddle:3.2,fallrock:3.5,ghostfly:7}},
+ {id:'fire',num:'제4장',name:'화염 요마성',han:'火焰妖魔城',enemies:[3,2,3,2,3],mobs:['goblin','golem','bulgasari'],boss:'demon',obs:['fireball','boulder','spikes','trap','rock','spikefloor','fallrock'],obsW:{spikefloor:7.2,fallrock:6.5,fireball:3.8,rock:5,trap:5,spikes:4,boulder:4}},
+ {id:'storm',num:'제5장',name:'창해 용궁',han:'滄海龍宮',enemies:[3,2,3,3,3],mobs:['imugi','firebird'],boss:'dragon',obs:['wave','crow','boulder','puddle','fireball','geyser','bolt','scale'],obsW:{fireball:5,wave:10.2,geyser:7.9,bolt:8.1,scale:8,crow:4.6,boulder:3.8,puddle:4}},
 ];
 /* 보스: 문제를 하나 낼 때마다 스펠카드 탄막 한 장. pat은 탄막 종류, mouth는 탄이 나오는 위치 */
 const BOSSES={
@@ -1076,7 +1079,7 @@ function pickItem(){
 }
 function pickMob(S,l){const c=S.mobs.filter(m=>MOBS[m].lv===l);const p=c.length?c:S.mobs;return p[Math.floor(rand()*p.length)]}
 /* 스테이지별 장애물 난이도: n 개수 범위, sp 장애물 간격, combo 한 번에 넘는 연속 장애물 확률 */
-const DIFF=[{n:[6,7],sp:330,combo:0},{n:[7,8],sp:310,combo:.18},{n:[10,12],sp:282,combos:2},{n:[11,13],sp:264,combos:2},{n:[13,16],sp:250,combos:3}];
+const DIFF=[{n:[6,7],sp:330,combo:0},{n:[7,8],sp:310,combo:.18},{n:[10,12],sp:282,combos:2},{n:[9,11],sp:264,combos:2},{n:[12,15],sp:250,combos:3}];
 const COMBO_OK=['rock','trap','spikes','thorns','puddle'],TRIPLE_OK=['rock','trap'];
 /* 움직이는 장애물은 화면에 들어온 뒤 움직이므로, 계획한 자리에서 만나도록 그만큼 앞에 둔다 */
 function placeObs(t,xm){const v=Math.abs(OBS[t].vx||0);addObs(t,v?xm+v*(W+40-PX)/(280+v):xm)}
@@ -1098,10 +1101,12 @@ function planGap(S,i,x0,combos=0){
    for(let j=0;j<cnt;j++)addObs(t,x+j*84,(ph+j*.5)%1);
    x+=84*(cnt-1)+30;
   }else placeObs(t,x);
-  /* 아래와 앞에서 동시에: 3장은 땅 장애물 바로 뒤에 날아오는 귀신, 5장은 같은 순간 내리꽂히는 비늘 */
-  if(!air&&!OBS[t].vx&&t!=='spikefloor'){
-   if(i===2&&rand()<.3)placeObs('ghostfly',x+70+rand()*40);
-   if(i===4&&rand()<.3){const e=addObs('scale',x);e.trig=(HAZ[4].scale[0]+HAZ[4].scale[1])/2}
+  /* 아래 · 앞 · 위를 섞는 복합 배치: 땅 장애물 뒤에 장별로 앞에서 날아오는 것 또는 위에서 떨어지는 것을 무작위로 붙인다 */
+  if(!air&&!OBS[t].vx&&t!=='spikefloor'&&MIX[i]&&rand()<MIX[i].p){
+   const m=MIX[i].set[Math.floor(rand()*MIX[i].set.length)];
+   if(m==='scale'){const e=addObs('scale',x);e.trig=(HAZ[4].scale[0]+HAZ[4].scale[1])/2}
+   else if(m==='fallrock'){const e=addObs('fallrock',x+230+rand()*50);e.trig=Math.max(e.trig,300)}
+   else placeObs(m,x+70+rand()*40);
   }
   prevAir=air;
   if(k===itemAt&&rand()<ITEM_RATE){const ia=rand()<.5;G.ents.push({kind:'item',type:pickItem(),x:x+D.sp*.5,y:ia?GROUND-165:GROUND-28,air:ia})}
@@ -1297,6 +1302,8 @@ function updHaz(e,dt,moving){
   e.strike=e.t>=.45&&e.t<.6;e.hNow=e.t>=.45&&e.t<2.1?O.h:0;
  }
 }
+/* 보기 속 한자는 20% 크게 */
+const hjBig=t=>t.replace(/[\u3400-\u9fff□]+/g,m=>`<span class="ohj">${m}</span>`);
 const josa=(w,a,b)=>(w.charCodeAt(w.length-1)-0xAC00)%28?a:b;
 function hitObs(e,O){
  const C=CH(),n=Math.max(1,Math.round(O.dmg*C.obsMul*G.mod.dmg));
@@ -1329,7 +1336,7 @@ function renderQuiz(){
   ${e.boss?`<p class="boss-line"><img src="assets/portraits/${e.mob}.jpg" alt="">${MOBS[e.mob].name}: “${BOSSES[e.mob].lines[Math.min(BOSSES[e.mob].lines.length-1,e.max-e.hp)]}”</p>`:''}
   <p class="qtext">${esc(q.q)}</p>
   ${q.h?`<div class="han${q.h.replace(/\s/g,'').length>8?' long':''}">${esc(q.h)}</div>`:''}
-  <div class="opts">${c.opts.map((o,i)=>`<button class="opt" id="opt${i}" data-act="opt" data-i="${i}"><kbd>${i+1}</kbd><span>${esc(o.t)}</span></button>`).join('')}</div>
+  <div class="opts">${c.opts.map((o,i)=>`<button class="opt" id="opt${i}" data-act="opt" data-i="${i}"><kbd>${i+1}</kbd><span>${hjBig(esc(o.t))}</span></button>`).join('')}</div>
   <div class="tools"><button class="hintbtn" id="hintBtn" data-act="hint" ${G.inv.hint?'':'disabled'}>筆 붓으로 오답 2개 지우기 <em>×${G.inv.hint}</em></button>
   ${G.inv.shield?`<span class="shield-note">符 부적 ${G.inv.shield}장이 오답 피해를 막아 준다</span>`:''}</div>
   <div class="fb" id="fb" hidden></div></div>`);
@@ -1559,7 +1566,7 @@ function renderStory(){
  }else if(st.phase==='quiz'){
   const q=st.q;
   showPanel(`<div class="story">${speaker(sc.npc)}<p class="qtext">${esc(q.q)}</p>${q.h?`<div class="han${q.h.replace(/\s/g,'').length>8?' long':''}">${esc(q.h)}</div>`:''}
-   <div class="opts">${st.opts.map((o,i)=>`<button class="opt" id="sopt${i}" data-act="sopt" data-i="${i}"><kbd>${i+1}</kbd><span>${esc(o.t)}</span></button>`).join('')}</div></div>`);
+   <div class="opts">${st.opts.map((o,i)=>`<button class="opt" id="sopt${i}" data-act="sopt" data-i="${i}"><kbd>${i+1}</kbd><span>${hjBig(esc(o.t))}</span></button>`).join('')}</div></div>`);
  }else if(st.phase==='result'){
   const r=st.res;
   showPanel(`<div class="story">${speaker(sc.npc)}<p class="line">${r.msg}</p><div class="fxs">${fxChips(r.fx)}</div>
