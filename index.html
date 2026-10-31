@@ -929,8 +929,8 @@ const CHARS={
  power:{name:'강현',title:'떠돌이 검객',age:16,role:'체력형',art:'sword',hp:140,time:0,hints:0,shields:0,dmgMul:.95,obsMul:.95,healMul:1,scoreMul:1,jumps:1,scale:1.06,
   abil:['최대 HP 140 (가장 튼튼함)','받는 피해 5% 감소','불굴: HP 30% 이하일 때 받는 피해 절반'],stats:{지력:2,체력:5,민첩:2},
   look:{skin:'#e8b88f',hair:'#121116',coat:'#222128',inner:'#dcd8cc',sash:'#a8322a',trim:'#c9a24a',pants:'#26252c',shoe:'#18171c',band:'#a8322a'}},
- swift:{name:'하람',title:'바람 궁수',age:14,role:'민첩형',art:'archer',hp:120,time:0,hints:0,shields:1,dmgMul:1,obsMul:1,healMul:1.5,scoreMul:1.05,jumps:2,scale:.98,
-  abil:['공중에서 한 번 더 점프','회복 아이템 효과 ×1.5','부적 1장을 들고 출발','정답 점수 ×1.05','장애물 · 탄막을 20% 확률로 회피'],stats:{지력:3,체력:3,민첩:5},
+ swift:{name:'하람',title:'바람 궁수',age:14,role:'민첩형',art:'archer',hp:130,time:0,hints:0,shields:1,dmgMul:1,obsMul:1,healMul:1.5,scoreMul:1.05,jumps:2,scale:.98,
+  abil:['공중에서 한 번 더 점프','회복 아이템 효과 ×1.5','부적 1장을 들고 출발','정답 점수 ×1.05','장애물 · 탄막을 15% 확률로 회피'],stats:{지력:3,체력:3,민첩:5},
   look:{skin:'#f5d0ae',hair:'#1a1416',jacket:'#a8282a',goreum:'#e9b949',pants:'#f0ebe0',shoe:'#2a1c18',daenggi:'#c8372a'}},
 };
 const STATCOL={지력:'#6d8fc4',체력:'#e0533a',민첩:'#3aa893'};
@@ -989,8 +989,8 @@ const BOSSES={
   spells:[{name:'蛛網天羅',read:'주망천라',chars:'蛛網絲',col:'#9b8fb0',pat:['rain','lines']}]},
  wolf:{hp:2,spd:1.05,q:[3],mouth:[-150,-124],lines:['크르릉… 네 글자 냄새가 난다!','달이 차오른다. 도망칠 곳은 없다!'],
   spells:[{name:'狼牙',read:'낭아',chars:'狼牙爪',col:'#d8d4cc',pat:['aimed','lines']},{name:'月下狂嘯',read:'월하광소',chars:'月嘯',col:'#e0533a',pat:['aimed','rain']}]},
- ghost:{hp:2,spd:1.1,q:[3],mouth:[-4,-180],lines:['이 골짜기에 들어온 자, 돌아가지 못하리…','부적이 너를 묶으리라!'],
-  spells:[{name:'鬼火',read:'귀화',chars:'鬼火',col:'#6fc8f0',pat:['spiral']},{name:'招魂符',read:'초혼부',chars:'符魂',col:'#e9b949',pat:['spiral','rain']}]},
+ ghost:{hp:2,spd:1.3,q:[3],mouth:[-4,-180],lines:['이 골짜기에 들어온 자, 돌아가지 못하리…','부적이 너를 묶으리라!'],
+  spells:[{name:'鬼火',read:'귀화',chars:'鬼火',col:'#6fc8f0',pat:['spiral','aimed','rain']},{name:'招魂符',read:'초혼부',chars:'符魂',col:'#e9b949',pat:['spiral','rain','aimed']}]},
  demon:{hp:3,spd:1.15,q:[3],mouth:[-10,-224],lines:['하찮은 것이 여기까지 왔느냐!','이 불길 속에서 재가 되어라!'],
   spells:[{name:'妖火',read:'요화',chars:'妖火',col:'#ff7a3a',pat:['aimed','lines','rain']},{name:'妖魔亂舞',read:'요마난무',chars:'妖魔亂',col:'#e0533a',pat:['spiral','aimed']}]},
  dragon:{hp:3,spd:1.2,q:[3],mouth:[-110,-196],lines:['천 년을 기다렸다. 네 글자를 시험하마.','바다가 너를 삼키리라!','이것이 마지막 시험이다!'],
@@ -1251,9 +1251,9 @@ function domShake(){arena.classList.remove('shake');void arena.offsetWidth;arena
 function heal(n){const before=G.hp;G.hp=Math.min(G.maxHp,G.hp+n);floater(`HP +${G.hp-before}`,'#5fd3a9')}
 function damage(n,fromQuiz){
  if(fromQuiz&&G.inv.shield>0){G.inv.shield--;P.shieldFx=1.2;floater('부적이 막았다!','#e9b949');sfx('block');return 0}
- /* 캐릭터 고유 능력: 궁수 회피 20% · 검객 불굴(HP 30% 이하 피해 절반) · 술사 맞으면 20% 확률로 HP +10 */
+ /* 캐릭터 고유 능력: 궁수 회피 15% · 검객 불굴(HP 30% 이하 피해 절반) · 술사 맞으면 20% 확률로 HP +10 */
  {
-  if(!fromQuiz&&G.char==='swift'&&rand()<.2){floater('회피!','#7fe0ff',PX,GROUND-170,30);sfx('jump2');P.inv=Math.max(P.inv,.4);return 0}
+  if(!fromQuiz&&G.char==='swift'&&rand()<.15){floater('회피!','#7fe0ff',PX,GROUND-170,30);sfx('jump2');P.inv=Math.max(P.inv,.4);return 0}
   if(G.char==='power'&&G.hp<=G.maxHp*.3){n=Math.max(1,Math.round(n*.5));floater('불굴','#ffb070',PX,GROUND-190,20)}
   if(!fromQuiz&&G.char==='brain'&&rand()<.2)setTimeout(()=>{if(G.hp>0)heal(10)},250);
  }
