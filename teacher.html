@@ -37,7 +37,20 @@ label.opt small{margin-left:auto;color:var(--muted);font-variant-numeric:tabular
 .note{font-size:13px;color:var(--muted)}
 .msg{font-size:13px;color:var(--jade);min-height:1.2em}
 :focus-visible{outline:2px solid var(--jade);outline-offset:2px}
+.rec{margin-top:24px}
+.rec .row{align-items:end}
+.rec label{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--muted)}
+.rec input,.rec select{font:inherit;font-size:14px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:5px 8px;min-width:0}
+.rec input.u{width:min(520px,100%)}
+.tblwrap{overflow-x:auto;margin-top:12px}
+table.t{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;white-space:nowrap}
+table.t th{color:var(--muted);font-weight:500;cursor:pointer}
+table.t td.w{white-space:normal;min-width:16em;font-size:13px;color:var(--muted)}
+.sumline{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-size:14px}
+.sumline b{font-size:18px}
 </style>
+<script src="config.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -74,6 +87,27 @@ label.opt small{margin-left:auto;color:var(--muted);font-variant-numeric:tabular
   </section>
  </aside>
 </div>
+<section class="rec">
+ <h2>학생 기록 보기</h2>
+ <p class="note" style="margin:0 0 10px">학생이 판을 마칠 때마다 선생님 구글 시트에 쌓인 기록을 여기서 본다. 기록 주소와 비밀번호는 docs/결과수집.md 대로 Apps Script를 배포하면 생긴다. 구글 시트를 직접 열어 봐도 같은 기록이 있다.</p>
+ <div class="row">
+  <label>기록 주소 (Apps Script 웹 앱)<input class="u" id="rurl" placeholder="https://script.google.com/macros/s/…/exec"></label>
+  <label>교사 비밀번호<input id="rkey" type="password" autocomplete="off"></label>
+  <button class="btn main" type="button" id="rload">불러오기</button>
+ </div>
+ <div class="row" style="margin-top:10px">
+  <label>날짜<select id="fdate"><option value="today">오늘</option><option value="7">최근 7일</option><option value="all">전체</option></select></label>
+  <label>학년<select id="fgrade"><option value="">전체</option></select></label>
+  <label>반<select id="fcls"><option value="">전체</option></select></label>
+  <label>보기<select id="fview"><option value="sum">학생별 요약</option><option value="all">모든 판</option></select></label>
+  <label>시험 모드<select id="ftest"><option value="no">빼기</option><option value="yes">넣기</option></select></label>
+  <label>이름 찾기<input id="fname" placeholder="이름"></label>
+  <a class="btn" id="csv" download="한문요괴원정기_기록.csv">CSV 저장</a>
+ </div>
+ <div class="msg" id="rmsg" role="status"></div>
+ <div class="sumline" id="rsum"></div>
+ <div class="tblwrap"><table class="t" id="rtbl"></table></div>
+</section>
 </div>
 <script src="assets/lib/qrcode.js"></script>
 <script>
@@ -120,6 +154,55 @@ $('#copy').addEventListener('click',()=>{
  navigator.clipboard.writeText(t).then(()=>$('#msg').textContent='복사했다. 학생들에게 붙여 넣어 보내면 된다.')
   .catch(()=>{const r=document.createRange();r.selectNodeContents($('#url'));getSelection().removeAllRanges();getSelection().addRange(r);$('#msg').textContent='링크를 선택해 두었다. Ctrl+C로 복사하세요.'});
 });
+</script>
+<script>
+/* 학생 기록 보기: Apps Script 웹 앱의 ?action=all&key=… 를 불러와 걸러 보여 준다 */
+(()=>{
+ const $=s=>document.querySelector(s),esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ let ROWS=[],sortKey='score',sortDir=-1;
+ const ls={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+ $('#rurl').value=ls.get('hm-rurl')||((window.HANMUN_CONFIG||{}).resultUrl||'');
+ const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+ $('#rload').addEventListener('click',()=>{
+  const url=$('#rurl').value.trim(),key=$('#rkey').value;
+  if(!url){$('#rmsg').textContent='기록 주소를 넣어 주세요.';return}
+  ls.set('hm-rurl',url);$('#rmsg').textContent='불러오는 중…';
+  fetch(url+'?action=all&key='+encodeURIComponent(key)).then(r=>r.json()).then(d=>{
+   if(!d.ok){$('#rmsg').textContent=d.error||'불러오지 못했습니다.';return}
+   ROWS=d.rows||[];$('#rmsg').textContent=`기록 ${ROWS.length}판을 불러왔습니다.`;
+   const opts=(sel,vals)=>{const cur=sel.value;sel.innerHTML='<option value="">전체</option>'+vals.map(v=>`<option ${v===cur?'selected':''}>${esc(v)}</option>`).join('')};
+   opts($('#fgrade'),[...new Set(ROWS.map(r=>r.grade))].filter(Boolean).sort());
+   opts($('#fcls'),[...new Set(ROWS.map(r=>r.cls))].filter(Boolean).sort((a,b)=>a-b));
+   draw();
+  }).catch(()=>{$('#rmsg').textContent='불러오지 못했습니다. 주소를 확인하고, Apps Script가 "모든 사용자"로 배포됐는지 확인해 주세요.'});
+ });
+ ['fdate','fgrade','fcls','fview','ftest','fname'].forEach(id=>$('#'+id).addEventListener('input',draw));
+ function filtered(){
+  const fd=$('#fdate').value,t=today(),g=$('#fgrade').value,c=$('#fcls').value,nm=$('#fname').value.trim(),test=$('#ftest').value==='yes';
+  const since=fd==='7'?new Date(Date.now()-6*864e5):null;
+  return ROWS.filter(r=>(fd==='all'||(fd==='today'?r.date===t:new Date(r.date)>=new Date(since.toDateString())))&&(!g||r.grade===g)&&(!c||r.cls===c)&&(!nm||r.name.includes(nm))&&(test||!r.test));
+ }
+ function draw(){
+  const rows=filtered(),view=$('#fview').value;
+  let cols,data;
+  if(view==='sum'){
+   const by={};for(const r of rows){const k=`${r.grade}-${r.cls}-${r.no}`;const s=by[k]||(by[k]={grade:r.grade,cls:r.cls,no:r.no,name:r.name,plays:0,best:0,bestChar:'',clears:0,accSum:0,last:''});
+    s.plays++;if(r.score>s.best){s.best=r.score;s.bestChar=r.char}if(r.won)s.clears++;s.accSum+=r.acc;if(r.time>s.last)s.last=r.time;s.name=r.name}
+   data=Object.values(by).map(s=>({...s,avgAcc:Math.round(s.accSum/s.plays)}));
+   cols=[['grade','학년'],['cls','반'],['no','번호'],['name','이름'],['best','최고 점수'],['bestChar','그때 주인공'],['plays','판 수'],['clears','완주'],['avgAcc','평균 정답률(%)'],['last','마지막 플레이']];
+  }else{
+   data=rows;cols=[['time','시각'],['grade','학년'],['cls','반'],['no','번호'],['name','이름'],['char','주인공'],['score','점수'],['acc','정답률(%)'],['stage','도착한 곳'],['won','완주'],['wrong','틀린 문제']];
+  }
+  if(!cols.some(c=>c[0]===sortKey)){sortKey=view==='sum'?'best':'score';sortDir=-1}
+  data.sort((a,b)=>{const x=a[sortKey],y=b[sortKey];return (x>y?1:x<y?-1:0)*sortDir||((+a.no||0)-(+b.no||0))});
+  const n=rows.length,stu=new Set(rows.map(r=>`${r.grade}-${r.cls}-${r.no}`)).size;
+  $('#rsum').innerHTML=n?`<span>학생 <b>${stu}</b>명</span><span>플레이 <b>${n}</b>판</span><span>완주 <b>${rows.filter(r=>r.won).length}</b>판</span><span>평균 점수 <b>${Math.round(rows.reduce((a,r)=>a+r.score,0)/n)}</b></span><span>평균 정답률 <b>${Math.round(rows.reduce((a,r)=>a+r.acc,0)/n)}%</b></span>`:'';
+  $('#rtbl').innerHTML=data.length?`<thead><tr>${cols.map(([k,h])=>`<th data-k="${k}">${h}${sortKey===k?(sortDir<0?' ▼':' ▲'):''}</th>`).join('')}</tr></thead><tbody>${data.map(r=>`<tr>${cols.map(([k])=>`<td${k==='wrong'?' class="w"':''}>${k==='won'?(r.won?'O':''):esc(r[k])}</td>`).join('')}</tr>`).join('')}</tbody>`:(ROWS.length?'<tbody><tr><td>조건에 맞는 기록이 없습니다.</td></tr></tbody>':'');
+  const csv=[cols.map(c=>c[1]).join(',')].concat(data.map(r=>cols.map(([k])=>`"${String(k==='won'?(r.won?'O':''):(r[k]??'')).replace(/"/g,'""')}"`).join(','))).join('\n');
+  $('#csv').href='data:text/csv;charset=utf-8,'+encodeURIComponent('\ufeff'+csv);
+ }
+ $('#rtbl').addEventListener('click',e=>{const th=e.target.closest('th');if(!th)return;const k=th.dataset.k;if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=-1}draw()});
+})();
 </script>
 </body>
 </html>

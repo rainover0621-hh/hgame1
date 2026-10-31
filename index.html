@@ -226,6 +226,15 @@ th{color:var(--muted);font-weight:400}
 .journey{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13px}
 .journey li{background:var(--ink-3);border-radius:8px;padding:8px 10px}
 .send{display:flex;flex-wrap:wrap;gap:8px}
+.stu{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:end}
+.stu label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.stu select,.stu input{width:76px;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--ink-3);color:var(--text);font:inherit;font-size:17px}
+.stu .nm input{width:150px}
+.stu select:focus,.stu input:focus{outline:2px solid var(--gold)}
+.ranktbl{width:100%;font-size:16px}
+.ranktbl td,.ranktbl th{padding:7px 6px;text-align:left}
+.ranktbl td:first-child{font-weight:700;color:var(--gold);width:3em}
+.ranktbl tr.me td{background:rgba(233,185,73,.16)}
 .send input{flex:1 1 120px;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--ink-3);color:var(--text);font:inherit}
 .send input:focus{outline:2px solid var(--gold)}
 
@@ -278,6 +287,7 @@ th{color:var(--muted);font-weight:400}
   </div>
 </div>
 
+<script src="config.js"></script>
 <script>
 /* ───────── 교과서 단원별 문제 ─────────
    [단원, 분류, 난이도, 질문, 크게 보여 줄 한자, [정답, 오답, 오답, 오답], 풀이]
@@ -1274,10 +1284,11 @@ function slide(){
 
 function start(){
  if(document.body.classList.contains('touch'))goFull();
+ if(G.state==='title'){readStu();if(!stuOk()){domShake();const m=$('#stuMsg');if(m){m.textContent='학년 · 반 · 번호 · 이름을 모두 적어 주세요.';m.style.color='var(--verm)'}const f=[...document.querySelectorAll('.stu select,.stu input')].find(x=>!x.value.trim());if(f)f.focus();return}}
  if(G.state==='title'&&!rangeCount()){domShake();const n=$('#rangeN');if(n)n.textContent='0 (단원을 골라 주세요) ';return}
  initAudio();const C=CH();
  Object.assign(G,{state:'run',stage:0,hp:C.hp,maxHp:C.hp,score:0,combo:0,maxCombo:0,correct:0,total:0,wrong:[],inv:{shield:C.shields,hint:C.hints},
-  ents:[],parts:[],floats:[],bullets:[],dodge:null,cur:null,fade:.8,banner:null,mod:{dmg:1,time:0,score:1},journey:[],won:false});
+  ents:[],parts:[],floats:[],bullets:[],dodge:null,cur:null,fade:.8,banner:null,mod:{dmg:1,time:0,score:1},journey:[],won:false,sent:false,sendMsg:''});
  Object.assign(P,{y:0,vy:0,onGround:true,jumps:0,attack:0,hurt:0,knock:0,shieldFx:0,slide:0,dx:0,inv:0});setMovePad(false);
  if(URLSET.boss>=0){
   const S=STAGES[URLSET.boss];G.stage=URLSET.boss;G.journey.push(`시험 모드 · ${S.num} 보스만`);
@@ -1501,20 +1512,56 @@ function drawBullets(){
   cx.fillStyle='#1b1a22';cx.font='700 13px "Noto Serif KR",serif';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(b.ch,b.x,b.y+1);cx.textBaseline='alphabetic';
  }
 }
-/* ───────── 결과 보내기 ─────────
-   선생님이 만든 구글 Apps Script 웹 앱 주소를 넣으면, 결과 화면에 '선생님께 결과 보내기'가 나타난다.
-   만드는 방법은 docs/결과수집.md. 비워 두면 보내기 기능이 꺼진다. */
-const RESULT_URL='';
-function sendResult(btn){
- const name=$('#rName').value.trim(),sid=$('#rSid').value.trim(),msg=$('#rMsg');
- if(!name){msg.textContent='이름을 적어 주세요.';$('#rName').focus();return}
- const C=CH(),body={name,sid,char:`${C.role} ${C.name}`,score:G.score,correct:G.correct,total:G.total,
-  acc:G.total?Math.round(G.correct/G.total*100):0,stage:`${STAGES[G.stage].num} ${STAGES[G.stage].name}`,won:!!(G.won||G.state==='win'),
-  combo:G.maxCombo,hp:G.hp,journey:G.journey.join(' / '),units:[...G.units].join(','),wrong:G.wrong.map(q=>q.h||q.q).join(' / ')};
- btn.disabled=true;msg.textContent='보내는 중…';
- fetch(RESULT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)})
-  .then(()=>{msg.textContent='보냈어요. 선생님 시트에 기록됩니다.';G.sent=true})
-  .catch(()=>{btn.disabled=false;msg.textContent='보내지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.'});
+/* ───────── 학생 정보 · 기록 · 오늘의 순위 ─────────
+   선생님이 만든 구글 Apps Script 웹 앱 주소를 config.js에 넣으면, 판이 끝날 때마다 기록이 선생님 시트로 가고
+   '오늘의 순위'가 반 전체 기록으로 나온다. 비워 두면 이 기기에 남은 기록만으로 순위를 보여 준다. (docs/결과수집.md) */
+const RESULT_URL=((window.HANMUN_CONFIG||{}).resultUrl||'').trim();
+const STU=(()=>{try{return JSON.parse(store.get('hanmun-student'))||{}}catch(e){return {}}})();
+const stuOk=()=>STU.grade&&STU.cls&&STU.no&&STU.name;
+const stuLabel=()=>`${STU.grade}학년 ${STU.cls}반 ${STU.no}번 ${STU.name}`;
+function readStu(){
+ const g=$('#stuG'),c=$('#stuC'),n=$('#stuN'),nm=$('#stuName');if(!g)return;
+ STU.grade=g.value;STU.cls=String(Math.max(0,parseInt(c.value,10)||0)||'');STU.no=String(Math.max(0,parseInt(n.value,10)||0)||'');STU.name=nm.value.trim().slice(0,10);
+ store.set('hanmun-student',JSON.stringify(STU));
+}
+const isTest=()=>URLSET.stage>0||URLSET.boss>=0;
+function localRecords(){try{return JSON.parse(store.get('hanmun-records'))||[]}catch(e){return []}}
+const dayKey=t=>{const d=new Date(t);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+function recordResult(){
+ if(G.sent)return;G.sent=true;
+ const C=CH(),won=!!(G.won||G.state==='win');
+ const rec={t:Date.now(),grade:STU.grade,cls:STU.cls,no:STU.no,name:STU.name,char:`${C.role} ${C.name}`,score:G.score,correct:G.correct,total:G.total,
+  acc:G.total?Math.round(G.correct/G.total*100):0,stage:`${STAGES[G.stage].num} ${STAGES[G.stage].name}`,won,combo:G.maxCombo,hp:G.hp,
+  journey:G.journey.join(' / '),units:[...G.units].join(','),wrong:G.wrong.map(q=>q.h||q.q).join(' / '),test:isTest()};
+ const recs=localRecords();recs.push(rec);store.set('hanmun-records',JSON.stringify(recs.slice(-200)));
+ if(!RESULT_URL){G.sendMsg='이 기기에 기록했어요.';return}
+ G.sendMsg='선생님께 기록을 보내는 중…';
+ fetch(RESULT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(rec)})
+  .then(()=>{G.sendMsg='선생님께 기록을 보냈어요.';const m=$('#rMsg');if(m)m.textContent=G.sendMsg})
+  .catch(()=>{G.sendMsg='기록을 보내지 못했어요. 인터넷 연결을 확인해 주세요. (이 기기에는 남았어요)';const m=$('#rMsg');if(m)m.textContent=G.sendMsg});
+}
+/* 오늘의 순위: 학생마다 오늘 최고 점수 한 줄 */
+const maskName=n=>{n=String(n||'');return n.length<=1?n:n.length===2?n[0]+'○':n[0]+'○'.repeat(n.length-2)+n[n.length-1]};
+let rankBack=null;
+function showRanking(back){
+ rankBack=back;
+ showPanel(`<div class="rank"><p class="eyebrow">${dayKey(Date.now())}</p><h1 style="font-size:46px">오늘의 순위</h1>
+  <p class="keys" id="rankNote">${RESULT_URL?'반 전체 기록을 불러오는 중…':'이 기기에서 한 오늘 기록이다. 선생님이 기록 모으기를 켜면 반 전체 순위가 나온다.'}</p>
+  <div id="rankBody"></div>
+  <div class="row" style="margin-top:14px"><button class="go" data-act="rankback">돌아가기</button></div></div>`);
+ const draw=(rows,src)=>{
+  const best={};for(const r of rows){if(r.test)continue;const k=`${r.grade}-${r.cls}-${r.no}`;if(!best[k]||+r.score>+best[k].score)best[k]=r}
+  const list=Object.values(best).sort((a,b)=>b.score-a.score).slice(0,30);
+  const me=`${STU.grade}-${STU.cls}-${STU.no}`;
+  $('#rankBody').innerHTML=list.length?`<table class="ranktbl"><thead><tr><th>순위</th><th>학생</th><th>주인공</th><th>점수</th><th>정답률</th><th>도착</th></tr></thead><tbody>
+   ${list.map((r,i)=>`<tr class="${`${r.grade}-${r.cls}-${r.no}`===me?'me':''}"><td>${i+1}</td><td>${esc(r.grade)}-${esc(r.cls)} ${esc(maskName(r.name))}</td><td>${esc(String(r.char||'').split(' ').pop())}</td><td><b>${+r.score||0}</b></td><td>${+r.acc||0}%</td><td>${r.won===true||r.won==='O'?'완주':esc(String(r.stage||'').split(' ')[0])}</td></tr>`).join('')}</tbody></table>`
+   :'<p class="empty">아직 오늘 기록이 없다. 첫 기록을 남겨 보자!</p>';
+  if(src)$('#rankNote').textContent=src;
+ };
+ const local=localRecords().filter(r=>dayKey(r.t)===dayKey(Date.now()));
+ if(!RESULT_URL){draw(local);return}
+ fetch(RESULT_URL+'?action=today').then(r=>r.json()).then(d=>draw(d.rows||[],`반 전체 기록 · 학생마다 오늘 최고 점수 (${(d.rows||[]).length}판)`))
+  .catch(()=>draw(local,'반 전체 기록을 불러오지 못해 이 기기 기록만 보여 준다.'));
 }
 /* ───────── 이야기: 학생이 과거로 환생해 한문으로 요괴를 물리친다 ───────── */
 /* 대사의 {name}은 고른 주인공 이름, {name은}처럼 쓰면 받침에 맞는 조사가 붙는다.
@@ -1679,7 +1726,15 @@ function showTitle(){
   <h2>주인공 고르기</h2>
   <div class="chars">${Object.keys(CHARS).map(charCard).join('')}</div>
   ${URLSET.boss>=0?`<p class="keys" style="color:var(--gold);margin-top:12px">시험 모드: ${STAGES[URLSET.boss].num} 보스(${MOBS[STAGES[URLSET.boss].boss].name})전만 한다.</p>`:URLSET.stage>0?`<p class="keys" style="color:var(--gold);margin-top:12px">시험 모드: ${STAGES[URLSET.stage].num} ${STAGES[URLSET.stage].name}부터 시작한다.</p>`:''}
-  <div class="row" style="margin-top:14px"><button class="go" id="startBtn" data-act="start">원정 떠나기</button><span class="best">${best?`최고 기록 ${best}점 · `:''}<span id="rangeN">${rangeCount()}</span>문제에서 출제</span></div>
+  <h2>내 정보</h2>
+  <div class="stu">
+   <label>학년<select id="stuG"><option value="">-</option>${[1,2,3].map(g=>`<option ${String(STU.grade)===String(g)?'selected':''}>${g}</option>`).join('')}</select></label>
+   <label>반<input id="stuC" type="number" inputmode="numeric" min="1" max="20" value="${esc(STU.cls||'')}"></label>
+   <label>번호<input id="stuN" type="number" inputmode="numeric" min="1" max="50" value="${esc(STU.no||'')}"></label>
+   <label class="nm">이름<input id="stuName" maxlength="10" autocomplete="off" value="${esc(STU.name||'')}"></label>
+  </div>
+  <p class="keys" id="stuMsg">${RESULT_URL?'기록과 순위에 쓰인다. 순위에는 이름 가운데 글자가 가려져 나온다.':'순위에 쓰인다. 이름 가운데 글자는 가려져 나온다.'}</p>
+  <div class="row" style="margin-top:14px"><button class="go" id="startBtn" data-act="start">원정 떠나기</button><button class="ghost" data-act="rank">오늘의 순위</button><span class="best">${best?`최고 기록 ${best}점 · `:''}<span id="rangeN">${rangeCount()}</span>문제에서 출제</span></div>
   ${URLSET.lock?`<h2>출제 범위</h2>
   <p class="keys" style="margin:0 0 6px">선생님이 정한 범위로 출제된다.</p>
   <div class="chips">${UNITS.filter(([id])=>G.units.has(id)).map(([id,nm])=>`<span class="chip" aria-pressed="true">${esc(nm)}</span>`).join('')}</div>
@@ -1743,6 +1798,7 @@ function rangeUI(){
  if(!URLSET.u.length)store.set('hanmun-units',JSON.stringify([...G.units]));
 }
 function showResult(){
+ recordResult();
  const acc=G.total?G.correct/G.total:0,won=G.state==='win'||G.won,C=CH();
  const prevBest=+store.get('hanmun-best')||0,newBest=G.score>prevBest;
  if(newBest)store.set('hanmun-best',G.score);
@@ -1760,9 +1816,9 @@ function showResult(){
    <div><dt>최고 콤보</dt><dd>${G.maxCombo}</dd></div>
    <div><dt>남은 HP</dt><dd>${G.hp}</dd></div>
   </dl>
-  <div class="row"><button class="go" id="retryBtn" data-act="retry">다시 도전</button><button class="ghost" id="homeBtn" data-act="home">주인공 바꾸기</button>
+  <div class="row"><button class="go" id="retryBtn" data-act="retry">다시 도전</button><button class="ghost" id="homeBtn" data-act="home">주인공 바꾸기</button><button class="ghost" data-act="rank">오늘의 순위</button>
   <span class="best">${newBest?'새 최고 기록!':`최고 기록 ${Math.max(prevBest,G.score)}점`}</span></div>
-  ${RESULT_URL?`<h2>선생님께 결과 보내기</h2><div class="send"><input id="rName" maxlength="20" placeholder="이름" autocomplete="off"><input id="rSid" maxlength="12" placeholder="반-번호 (예: 2-15)" autocomplete="off"><button class="go" id="rBtn" data-act="send">보내기</button></div><p class="keys" id="rMsg">점수, 정답 수, 선택한 길, 틀린 문제가 선생님의 구글 시트에 기록됩니다.</p>`:''}
+  <p class="keys" id="rMsg" style="margin-top:8px">${esc(stuOk()?stuLabel()+' · ':'')}${esc(G.sendMsg||'')}${isTest()?' (시험 모드 기록은 순위에서 빠진다)':''}</p>
   ${G.journey.length?`<h2>여정의 선택</h2><ul class="journey">${G.journey.map(j=>`<li>${esc(j)}</li>`).join('')}</ul>`:''}
   <h2>오답 노트 (${G.wrong.length})</h2>
   ${G.wrong.length?`<ul class="notes">${G.wrong.map(q=>`<li><div class="nh">${esc(q.h||'—')}</div><div><p class="nq">[${esc(q.c)}] ${esc(q.q)}</p><p class="na">정답: ${esc(q.o[0])}</p><p class="ne">${esc(q.e)}</p></div></li>`).join('')}</ul>`
@@ -3090,7 +3146,7 @@ panel.addEventListener('click',ev=>{
  const a=b.dataset.act;initAudio();
  if(a==='start'||a==='retry')start();else if(a==='opt')answer(+b.dataset.i);else if(a==='hint')useHint();
  else if(a==='next')next();else if(a==='home')toTitle();else if(a==='cat')toggleCat(b);else if(a==='unit')toggleUnit(b);else if(a==='uall'||a==='unone')setUnits(a==='uall');else if(a==='char')pickChar(b);
- else if(a==='send')sendResult(b);
+ else if(a==='rank'){const st=G.state;if(st==='title')readStu();showRanking(st==='title'?showTitle:showResult)}else if(a==='rankback'){(rankBack||showTitle)()}
  else if(a==='snext'||a==='sdone')storyNext();else if(a==='sskip')storySkip();else if(a==='schoose')storyChoose(+b.dataset.i);else if(a==='sopt')storyAnswer(+b.dataset.i);
 });
 addEventListener('keydown',ev=>{
