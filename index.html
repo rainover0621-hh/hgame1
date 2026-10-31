@@ -817,11 +817,11 @@ const STAGES=[
 ];
 /* 보스: 문제를 하나 낼 때마다 스펠카드 탄막 한 장. pat은 탄막 종류, mouth는 탄이 나오는 위치 */
 const BOSSES={
- spider:{hp:2,spd:1,q:[1,2],mouth:[-72,-70],lines:['내 거미줄에서 빠져나갈 수 있겠느냐!'],
+ spider:{hp:2,spd:1,q:[3],mouth:[-72,-70],lines:['내 거미줄에서 빠져나갈 수 있겠느냐!'],
   spells:[{name:'蛛網天羅',read:'주망천라',chars:'蛛網絲',col:'#9b8fb0',pat:['rain','lines']}]},
- wolf:{hp:2,spd:1.05,q:[2],mouth:[-150,-124],lines:['크르릉… 네 글자 냄새가 난다!','달이 차오른다. 도망칠 곳은 없다!'],
+ wolf:{hp:2,spd:1.05,q:[3],mouth:[-150,-124],lines:['크르릉… 네 글자 냄새가 난다!','달이 차오른다. 도망칠 곳은 없다!'],
   spells:[{name:'狼牙',read:'낭아',chars:'狼牙爪',col:'#d8d4cc',pat:['aimed','lines']},{name:'月下狂嘯',read:'월하광소',chars:'月嘯',col:'#e0533a',pat:['aimed','rain']}]},
- ghost:{hp:2,spd:1.1,q:[2,3],mouth:[-4,-180],lines:['이 골짜기에 들어온 자, 돌아가지 못하리…','부적이 너를 묶으리라!'],
+ ghost:{hp:2,spd:1.1,q:[3],mouth:[-4,-180],lines:['이 골짜기에 들어온 자, 돌아가지 못하리…','부적이 너를 묶으리라!'],
   spells:[{name:'鬼火',read:'귀화',chars:'鬼火',col:'#6fc8f0',pat:['spiral']},{name:'招魂符',read:'초혼부',chars:'符魂',col:'#e9b949',pat:['spiral','rain']}]},
  demon:{hp:2,spd:1.15,q:[3],mouth:[-10,-224],lines:['하찮은 것이 여기까지 왔느냐!','이 불길 속에서 재가 되어라!'],
   spells:[{name:'妖火',read:'요화',chars:'妖火',col:'#ff7a3a',pat:['aimed','lines','rain']},{name:'妖魔亂舞',read:'요마난무',chars:'妖魔亂',col:'#e0533a',pat:['spiral','aimed']}]},
@@ -849,6 +849,7 @@ const G={state:'title',stage:0,cam:0,speed:0,t:0,hp:100,maxHp:100,score:0,combo:
  used:new Set(),cats:new Set(URLSET.c.length?URLSET.c:CATS),units:loadUnits(),stDone:0,stTotal:0,bullets:[],dodge:null,hitstop:0,zoom:1,mod:{dmg:1,time:0,score:1},journey:[],won:false,story:null,char:CHARS[savedChar]?savedChar:'brain'};
 const P={y:0,vy:0,onGround:true,jumps:0,phase:0,attack:0,hurt:0,knock:0,shieldFx:0,slide:0,dx:0,inv:0,mvL:false,mvR:false,sq:0,vx:0,trail:[],step:0,happy:0};
 const CH=()=>CHARS[G.char];
+loadSeen();
 function loadUnits(){
  if(URLSET.u.length)return new Set(URLSET.u);
  const ids=UNITS.map(u=>u[0]);let v=null;try{v=JSON.parse(store.get('hanmun-units'))}catch(e){}
@@ -858,25 +859,34 @@ function loadUnits(){
 const inRange=q=>G.units.has(q.u)&&G.cats.has(q.c);
 const rangeCount=()=>BANK.filter(inRange).length;
 
-function pick(lvls){
+/* 문제 고르기
+   1) 성어(한자성어 · 고사성어)와 다른 문제가 함께 있으면 성어를 절반 비중으로
+   2) 1~3장은 1~8과(부수와 자전 포함), 4~5장은 13과 이후 단원을 STAGE_PREF 비중으로 (4~5장은 이 규칙이 1번보다 먼저)
+   3) 단원을 먼저 고르게 뽑은 뒤 그 안에서 문제를 뽑아 한 단원에 몰리지 않게
+   4) 이미 낸 문제는 이 기기에 기억해 두고(다시 도전해도) 범위를 다 돌 때까지 다시 내지 않는다
+   strict면 난이도를 꼭 지킨다(보스) */
+const EARLY_UNITS=new Set(['1','2','자전','3','4','5','6','7','8']),STAGE_PREF=.8;
+const isIdiom=q=>q.c==='한자성어'||q.c==='고사성어';
+function saveSeen(){store.set('hanmun-seen',JSON.stringify([...G.used].slice(-400)))}
+function loadSeen(){try{const v=JSON.parse(store.get('hanmun-seen'));if(Array.isArray(v))v.forEach(id=>BANK[id]&&G.used.add(id))}catch(e){}}
+function pick(lvls,strict){
  let all=BANK.filter(inRange);
  if(!all.length)all=BANK.filter(q=>G.units.has(q.u));
  if(!all.length)all=BANK;
  let pool=all.filter(q=>!G.used.has(q.id));
  if(!pool.length){G.used.clear();pool=all}
- let c=pool.filter(q=>lvls.includes(q.l));
- if(!c.length)c=pool;
- /* 범위 안에 성어와 다른 문제가 함께 있으면 성어(한자성어 · 고사성어)를 절반 비중으로 낸다 */
- const isIdiom=q=>q.c==='한자성어'||q.c==='고사성어';
- const rangeHas=all.some(isIdiom)&&all.some(q=>!isIdiom(q));
- if(rangeHas){
-  const want=rand()<.5;
-  let side=c.filter(q=>isIdiom(q)===want);
-  if(!side.length)side=pool.filter(q=>isIdiom(q)===want);
-  if(!side.length){side=all.filter(q=>isIdiom(q)===want);side.forEach(q=>G.used.delete(q.id))}
-  if(side.length)c=side;
- }
- const q=c[Math.floor(rand()*c.length)];G.used.add(q.id);return q;
+ const atLv=q=>lvls.includes(q.l);
+ let c=pool.filter(atLv);if(!c.length)c=all.filter(atLv);if(!c.length)c=pool;
+ const narrow=pred=>{let r=c.filter(pred);if(!r.length)r=pool.filter(q=>atLv(q)&&pred(q));if(!r.length)r=all.filter(q=>atLv(q)&&pred(q));if(!r.length&&!strict)r=pool.filter(pred);return r};
+ const early=G.stage<3,pref=q=>EARLY_UNITS.has(q.u)===early;
+ const byStage=()=>{const r=narrow(pref),o=narrow(q=>!pref(q));if(r.length&&o.length)c=rand()<STAGE_PREF?r:o;else if(r.length)c=r};
+ const byIdiom=()=>{if(c.some(isIdiom)&&c.some(q=>!isIdiom(q))){const want=rand()<.5;c=c.filter(q=>isIdiom(q)===want)}
+  else if(all.some(isIdiom)&&all.some(q=>!isIdiom(q))&&early){const want=rand()<.5,r=narrow(q=>isIdiom(q)===want);if(r.length)c=r}};
+ /* 1~3장은 성어 절반을 먼저, 4~5장은 13과 이후 단원 비중을 먼저 */
+ if(early){byIdiom();const r=c.filter(pref);if(r.length&&r.length<c.length)c=rand()<STAGE_PREF?r:c.filter(q=>!pref(q))}
+ else{byStage();byIdiom()}
+ const units=[...new Set(c.map(q=>q.u))],u=units[Math.floor(rand()*units.length)];c=c.filter(q=>q.u===u);
+ const q=c[Math.floor(rand()*c.length)];G.used.delete(q.id);G.used.add(q.id);saveSeen();return q;
 }
 const TIME_BONUS=.5; /* 바로 맞히면 기본 점수의 50%를 더 준다. 시간이 지날수록 줄어 0이 된다 */
 const ITEM_RATE=.7; /* 아이템이 나올 확률 (1이면 매번) */
@@ -1030,7 +1040,6 @@ function start(){
  initAudio();const C=CH();
  Object.assign(G,{state:'run',stage:0,hp:C.hp,maxHp:C.hp,score:0,combo:0,maxCombo:0,correct:0,total:0,wrong:[],inv:{shield:C.shields,hint:C.hints},
   ents:[],parts:[],floats:[],bullets:[],dodge:null,cur:null,fade:.8,banner:null,mod:{dmg:1,time:0,score:1},journey:[],won:false});
- G.used=new Set();
  Object.assign(P,{y:0,vy:0,onGround:true,jumps:0,attack:0,hurt:0,knock:0,shieldFx:0,slide:0,dx:0,inv:0});setMovePad(false);
  buildStage(0,G.cam+700);
  startStory(STORY.prologue,()=>{G.state='run';G.banner={t:3,d:3,title:'제1장 · 도화 마을',sub:'돌부리는 점프, 까마귀는 숙여서 피하자'}});
@@ -1069,7 +1078,7 @@ function collect(e){
 
 function startQuiz(e){
  G.state='quiz';P.slide=0;
- const q=e.boss?pick(e.qlv):e.q,lv=e.boss?4:q.l;
+ const q=e.boss?pick(e.qlv,true):e.q,lv=e.boss?4:q.l;
  G.cur={e,q,lv,opts:shuffle(q.o.map((t,i)=>({t,ok:i===0}))),time:Math.max(8,LV[lv].time+CH().time+G.mod.time),done:false,hint:false};
  G.cur.left=G.cur.time;
  renderQuiz();
