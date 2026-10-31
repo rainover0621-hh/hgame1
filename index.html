@@ -860,12 +860,12 @@ const inRange=q=>G.units.has(q.u)&&G.cats.has(q.c);
 const rangeCount=()=>BANK.filter(inRange).length;
 
 /* 문제 고르기
-   1) 성어(한자성어 · 고사성어)와 다른 문제가 함께 있으면 성어를 절반 비중으로
+   1) 성어(한자성어 · 고사성어)와 다른 문제가 함께 있으면 1~3장은 성어 절반, 4~5장은 IDIOM_LATE 비중
    2) 1~3장은 1~8과(부수와 자전 포함), 4~5장은 13과 이후 단원을 STAGE_PREF 비중으로 (4~5장은 이 규칙이 1번보다 먼저)
    3) 단원을 먼저 고르게 뽑은 뒤 그 안에서 문제를 뽑아 한 단원에 몰리지 않게
    4) 이미 낸 문제는 이 기기에 기억해 두고(다시 도전해도) 범위를 다 돌 때까지 다시 내지 않는다
    strict면 난이도를 꼭 지킨다(보스) */
-const EARLY_UNITS=new Set(['1','2','자전','3','4','5','6','7','8']),STAGE_PREF=.8;
+const EARLY_UNITS=new Set(['1','2','자전','3','4','5','6','7','8']),STAGE_PREF=.8,IDIOM_LATE=.3;
 const isIdiom=q=>q.c==='한자성어'||q.c==='고사성어';
 function saveSeen(){store.set('hanmun-seen',JSON.stringify([...G.used].slice(-400)))}
 function loadSeen(){try{const v=JSON.parse(store.get('hanmun-seen'));if(Array.isArray(v))v.forEach(id=>BANK[id]&&G.used.add(id))}catch(e){}}
@@ -884,7 +884,13 @@ function pick(lvls,strict){
   else if(all.some(isIdiom)&&all.some(q=>!isIdiom(q))&&early){const want=rand()<.5,r=narrow(q=>isIdiom(q)===want);if(r.length)c=r}};
  /* 1~3장은 성어 절반을 먼저, 4~5장은 13과 이후 단원 비중을 먼저 */
  if(early){byIdiom();const r=c.filter(pref);if(r.length&&r.length<c.length)c=rand()<STAGE_PREF?r:c.filter(q=>!pref(q))}
- else{byStage();byIdiom()}
+ else{
+  /* 4~5장: 성어 IDIOM_LATE 비중, 나머지는 13과 이후 단원 위주 */
+  const hasI=all.some(isIdiom),hasN=all.some(q=>!isIdiom(q));
+  let idi=false;
+  if(hasI&&hasN){const want=rand()<IDIOM_LATE,r=narrow(q=>isIdiom(q)===want);if(r.length){c=r;idi=want}}
+  if(!idi)byStage();
+ }
  const units=[...new Set(c.map(q=>q.u))],u=units[Math.floor(rand()*units.length)];c=c.filter(q=>q.u===u);
  const q=c[Math.floor(rand()*c.length)];G.used.delete(q.id);G.used.add(q.id);saveSeen();return q;
 }
