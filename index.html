@@ -924,13 +924,13 @@ const ITEMS={
 /* 주인공 3인: 능력치와 생김새 (art는 그림 종류, 초상화는 assets/portraits/{art}.jpg) */
 const CHARS={
  brain:{name:'서윤',title:'견습 술사',age:15,role:'지능형',art:'mage',hp:120,time:8,hints:2,shields:0,dmgMul:.9,obsMul:.9,healMul:1,scoreMul:1.1,jumps:1,scale:1.02,
-  abil:['제한 시간 +8초','붓 2자루를 들고 출발','정답 점수 ×1.1','받는 피해 10% 감소'],stats:{지력:5,체력:2,민첩:3},
+  abil:['제한 시간 +8초','붓 2자루를 들고 출발','정답 점수 ×1.1','받는 피해 10% 감소','장애물 · 탄막에 맞으면 20% 확률로 HP +10'],stats:{지력:5,체력:2,민첩:3},
   look:{skin:'#f3cfae',hair:'#15131a',robe:'#eef1f6',outer:'#2b4a8a',trim:'#c9a24a',pants:'#d9dde6',shoe:'#2a2a3a',sash:'#2b4a8a'}},
  power:{name:'강현',title:'떠돌이 검객',age:16,role:'체력형',art:'sword',hp:140,time:0,hints:0,shields:0,dmgMul:.95,obsMul:.95,healMul:1,scoreMul:1,jumps:1,scale:1.06,
-  abil:['최대 HP 140 (가장 튼튼함)','받는 피해 5% 감소','장애물을 부수며 달린다'],stats:{지력:2,체력:5,민첩:2},
+  abil:['최대 HP 140 (가장 튼튼함)','받는 피해 5% 감소','불굴: HP 30% 이하일 때 받는 피해 절반'],stats:{지력:2,체력:5,민첩:2},
   look:{skin:'#e8b88f',hair:'#121116',coat:'#222128',inner:'#dcd8cc',sash:'#a8322a',trim:'#c9a24a',pants:'#26252c',shoe:'#18171c',band:'#a8322a'}},
  swift:{name:'하람',title:'바람 궁수',age:14,role:'민첩형',art:'archer',hp:120,time:0,hints:0,shields:1,dmgMul:1,obsMul:1,healMul:1.5,scoreMul:1.05,jumps:2,scale:.98,
-  abil:['공중에서 한 번 더 점프','회복 아이템 효과 ×1.5','부적 1장을 들고 출발','정답 점수 ×1.05'],stats:{지력:3,체력:3,민첩:5},
+  abil:['공중에서 한 번 더 점프','회복 아이템 효과 ×1.5','부적 1장을 들고 출발','정답 점수 ×1.05','장애물 · 탄막을 20% 확률로 회피'],stats:{지력:3,체력:3,민첩:5},
   look:{skin:'#f5d0ae',hair:'#1a1416',jacket:'#a8282a',goreum:'#e9b949',pants:'#f0ebe0',shoe:'#2a1c18',daenggi:'#c8372a'}},
 };
 const STATCOL={지력:'#6d8fc4',체력:'#e0533a',민첩:'#3aa893'};
@@ -1251,7 +1251,8 @@ function domShake(){arena.classList.remove('shake');void arena.offsetWidth;arena
 function heal(n){const before=G.hp;G.hp=Math.min(G.maxHp,G.hp+n);floater(`HP +${G.hp-before}`,'#5fd3a9')}
 function damage(n,fromQuiz){
  if(fromQuiz&&G.inv.shield>0){G.inv.shield--;P.shieldFx=1.2;floater('부적이 막았다!','#e9b949');sfx('block');return 0}
- if(URLSET.perks){
+ /* 캐릭터 고유 능력: 궁수 회피 20% · 검객 불굴(HP 30% 이하 피해 절반) · 술사 맞으면 20% 확률로 HP +10 */
+ {
   if(!fromQuiz&&G.char==='swift'&&rand()<.2){floater('회피!','#7fe0ff',PX,GROUND-170,30);sfx('jump2');P.inv=Math.max(P.inv,.4);return 0}
   if(G.char==='power'&&G.hp<=G.maxHp*.3){n=Math.max(1,Math.round(n*.5));floater('불굴','#ffb070',PX,GROUND-190,20)}
   if(!fromQuiz&&G.char==='brain'&&rand()<.2)setTimeout(()=>{if(G.hp>0)heal(10)},250);
@@ -1677,7 +1678,6 @@ function showTitle(){
   <p class="lede">글자를 먹고 사는 요괴들이 세상의 한자를 삼키기 시작했다. 주인공을 골라 도화 마을에서 창해 용궁까지 다섯 고개를 넘으며, 배운 한문으로 요괴를 물리치자.</p>
   <h2>주인공 고르기</h2>
   <div class="chars">${Object.keys(CHARS).map(charCard).join('')}</div>
-  ${URLSET.perks?`<p class="keys" style="color:var(--gold);margin-top:12px">시험 능력 켜짐: 술사 맞을 때 20% 확률로 HP +10 · 궁수 장애물 · 탄막 20% 회피 · 검객 HP 30% 이하일 때 받는 피해 절반(불굴)</p>`:''}
   ${URLSET.boss>=0?`<p class="keys" style="color:var(--gold);margin-top:12px">시험 모드: ${STAGES[URLSET.boss].num} 보스(${MOBS[STAGES[URLSET.boss].boss].name})전만 한다.</p>`:URLSET.stage>0?`<p class="keys" style="color:var(--gold);margin-top:12px">시험 모드: ${STAGES[URLSET.stage].num} ${STAGES[URLSET.stage].name}부터 시작한다.</p>`:''}
   <div class="row" style="margin-top:14px"><button class="go" id="startBtn" data-act="start">원정 떠나기</button><span class="best">${best?`최고 기록 ${best}점 · `:''}<span id="rangeN">${rangeCount()}</span>문제에서 출제</span></div>
   ${URLSET.lock?`<h2>출제 범위</h2>
