@@ -796,7 +796,17 @@ const OBS={
  boulder:{name:'굴러오는 바위',dmg:10,w:28,h:50,vx:-200},
  fireball:{name:'불덩이',dmg:9,w:22,air:true,vx:-240},
  wave:{name:'파도',dmg:7,w:40,h:38,vx:-110},
+ /* 움직이는 함정(dyn): 높이가 시간에 따라 바뀌고, 0일 때는 지나가도 안전하다 */
+ spikefloor:{name:'가시 바닥',dmg:9,w:40,h:40,dyn:'cycle'},
+ fallrock:{name:'떨어지는 돌',dmg:10,w:28,h:42,dyn:'fall'},
+ geyser:{name:'물줄기',dmg:9,w:28,h:128,dyn:'geyser'},
+ bolt:{name:'번개',dmg:11,w:36,h:26,dyn:'bolt'},
 };
+/* 장별 함정 속도 (3장 → 5장으로 갈수록 빠르고 촉박하게). 0 · 1장 칸은 쓰지 않는다 */
+const HAZ=[null,null,
+ {cycle:1.45,fall:[300,380]},
+ {cycle:1.1,fall:[235,310]},
+ {cycle:1,fall:[220,290],geyser:1.55,bolt:[260,340]}];
 /* 요괴 도감: lv는 문제 난이도(4는 보스) */
 const MOBS={
  wasp:{name:'독침벌',han:'毒蜂',lv:1},plant:{name:'식인초',han:'食人草',lv:2},
@@ -811,9 +821,9 @@ const MOBS={
 const STAGES=[
  {id:'peach',num:'제1장',name:'도화 마을',han:'桃花村',enemies:[1,1,2,1],mobs:['wasp','plant'],boss:'spider',obs:['rock','puddle','thorns','web','crow']},
  {id:'bamboo',num:'제2장',name:'월하 대숲',han:'月下竹林',enemies:[2,1,2,2],mobs:['boar','fox'],boss:'wolf',obs:['spikes','log','crow','trap','thorns']},
- {id:'valley',num:'제3장',name:'귀곡',han:'鬼谷',enemies:[2,3,1,2,3],mobs:['wisp','shadow','jiangshi'],boss:'ghost',obs:['tomb','puddle','web','boulder','crow']},
- {id:'fire',num:'제4장',name:'화염 요마성',han:'火焰妖魔城',enemies:[3,2,3,2,3],mobs:['goblin','golem','bulgasari'],boss:'demon',obs:['fireball','boulder','spikes','trap','rock']},
- {id:'storm',num:'제5장',name:'창해 용궁',han:'滄海龍宮',enemies:[3,2,3,3,3],mobs:['imugi','firebird'],boss:'dragon',obs:['wave','crow','boulder','puddle','fireball']},
+ {id:'valley',num:'제3장',name:'귀곡',han:'鬼谷',enemies:[2,3,1,2,3],mobs:['wisp','shadow','jiangshi'],boss:'ghost',obs:['tomb','puddle','web','boulder','crow','spikefloor','spikefloor','fallrock','fallrock']},
+ {id:'fire',num:'제4장',name:'화염 요마성',han:'火焰妖魔城',enemies:[3,2,3,2,3],mobs:['goblin','golem','bulgasari'],boss:'demon',obs:['fireball','boulder','spikes','trap','rock','spikefloor','spikefloor','fallrock','fallrock']},
+ {id:'storm',num:'제5장',name:'창해 용궁',han:'滄海龍宮',enemies:[3,2,3,3,3],mobs:['imugi','firebird'],boss:'dragon',obs:['wave','crow','boulder','puddle','fireball','geyser','geyser','bolt','bolt']},
 ];
 /* 보스: 문제를 하나 낼 때마다 스펠카드 탄막 한 장. pat은 탄막 종류, mouth는 탄이 나오는 위치 */
 const BOSSES={
@@ -894,7 +904,7 @@ function pickItem(){
 }
 function pickMob(S,l){const c=S.mobs.filter(m=>MOBS[m].lv===l);const p=c.length?c:S.mobs;return p[Math.floor(rand()*p.length)]}
 /* 스테이지별 장애물 난이도: n 개수 범위, sp 장애물 간격, combo 한 번에 넘는 연속 장애물 확률 */
-const DIFF=[{n:[6,7],sp:330,combo:0},{n:[7,8],sp:310,combo:.18},{n:[7,9],sp:300,combo:.28},{n:[8,10],sp:290,combo:.36},{n:[9,10],sp:280,combo:.45}];
+const DIFF=[{n:[6,7],sp:330,combo:0},{n:[7,8],sp:310,combo:.18},{n:[8,10],sp:282,combo:.32},{n:[9,11],sp:264,combo:.42},{n:[10,12],sp:250,combo:.5}];
 const COMBO_OK=['rock','trap','spikes','thorns','puddle'],TRIPLE_OK=['rock','trap'];
 /* 움직이는 장애물은 화면에 들어온 뒤 움직이므로, 계획한 자리에서 만나도록 그만큼 앞에 둔다 */
 function placeObs(t,xm){const v=Math.abs(OBS[t].vx||0);addObs(t,v?xm+v*(W+40-PX)/(280+v):xm)}
@@ -909,6 +919,10 @@ function planGap(S,i,x0){
    const three=i>=3&&rand()<.3,pool=three?TRIPLE_OK:COMBO_OK,cnt=three?3:2,gapc=three?52:70;
    for(let j=0;j<cnt;j++){const tj=j===0&&pool.includes(t)?t:pool[Math.floor(rand()*pool.length)];placeObs(tj,x+j*gapc)}
    x+=gapc*(cnt-1)+40;
+  }else if(t==='spikefloor'){
+   const cnt=i>=3&&rand()<.45?3:2,ph=rand();
+   for(let j=0;j<cnt;j++)addObs(t,x+j*84,(ph+j*.5)%1);
+   x+=84*(cnt-1)+30;
   }else placeObs(t,x);
   prevAir=air;
   if(k===itemAt&&rand()<ITEM_RATE){const ia=rand()<.5;G.ents.push({kind:'item',type:pickItem(),x:x+D.sp*.5,y:ia?GROUND-165:GROUND-28,air:ia})}
@@ -916,7 +930,9 @@ function planGap(S,i,x0){
  }
  return x+360-x0;
 }
-function addObs(type,x){const O=OBS[type];G.ents.push({kind:'obs',type,x,vx:O.vx||0,rot:0,seed:rand()*9})}
+function addObs(type,x,phase){const O=OBS[type],H=HAZ[G.stage]||HAZ[4],e={kind:'obs',type,x,vx:O.vx||0,rot:0,seed:rand()*9};
+ if(O.dyn){e.phase=phase??rand();e.hNow=0;e.t=-1;const tr=H[O.dyn==='bolt'?'bolt':'fall'];if(tr)e.trig=tr[0]+rand()*(tr[1]-tr[0])}
+ G.ents.push(e);return e}
 function buildStage(i,x0){
  const S=STAGES[i];let x=x0;
  S.enemies.forEach((lvl,k)=>{
@@ -1055,16 +1071,34 @@ function interact(){
    const O=OBS[e.type];if(Math.abs(e.x-px)>=O.w)continue;
    let hit;
    if(O.air){const top=P.y-heroH(),cy=-98;hit=top<cy+14&&P.y>cy-14}
+   else if(O.dyn)hit=e.strike||(e.hNow>0&&P.y>-e.hNow+4);
    else hit=P.y>-O.h+4;
    if(hit){e.used=true;hitObs(e,O);if(G.hp<=0){gameOver();return}}
   }
+ }
+}
+/* 움직이는 함정 갱신: hNow가 지금 부딪히는 높이(0이면 안전) */
+function updHaz(e,dt,moving){
+ const O=OBS[e.type],H=HAZ[G.stage]||HAZ[4],px=G.cam+PX,sx=e.x-G.cam;
+ if(O.dyn==='cycle'){const ph=(G.t/H.cycle+e.phase)%1;e.ph=ph;e.hNow=ph<.5?O.h*Math.min(1,ph/.06):0}
+ else if(O.dyn==='geyser'){const ph=(G.t/(H.geyser||1.6)+e.phase)%1;e.ph=ph;e.hNow=ph>=.68?O.h*Math.min(1,(ph-.68)/.05):0;
+  if(ph>=.68&&sx>-40&&sx<W+40&&rand()<.5)G.parts.push({x:sx+(rand()-.5)*30,y:GROUND-e.hNow*rand(),vx:(rand()-.5)*160,vy:-60-rand()*120,r:2+rand()*3,life:.5,col:'rgba(200,235,255,.8)'})}
+ else if(O.dyn==='fall'){
+  if(e.t<0&&e.x-px<e.trig)e.t=0;
+  if(e.t>=0&&moving){const was=e.t;e.t+=dt;if(was<.42&&e.t>=.42){G.shake=Math.max(G.shake,.18);burst(sx,GROUND-6,'#8a8070',12,.6);sfx('hit')}}
+  e.hNow=e.t>=.42?O.h:0;
+ }else if(O.dyn==='bolt'){
+  if(e.t<0&&e.x-px<e.trig)e.t=0;
+  if(e.t>=0&&moving){const was=e.t;e.t+=dt;if(was<.45&&e.t>=.45){G.flash=Math.max(G.flash,.35);burst(sx,GROUND-10,'#fff3a0',16,.7);tone(120,.25,'sawtooth',.08,60)}}
+  e.strike=e.t>=.45&&e.t<.6;e.hNow=e.t>=.45&&e.t<2.1?O.h:0;
  }
 }
 const josa=(w,a,b)=>(w.charCodeAt(w.length-1)-0xAC00)%28?a:b;
 function hitObs(e,O){
  const C=CH(),n=Math.max(1,Math.round(O.dmg*C.obsMul*G.mod.dmg));
  damage(n,false);e.fling=.8;
- if(C.obsMul<1){sfx('smash');floater(`${O.name}${josa(O.name,'을','를')} 부쉈다`,'#f1ebdc',PX,GROUND-200,18);burst(e.x-G.cam,GROUND-20,'#6b6670',12)}
+ if(O.dyn&&e.type!=='fallrock'){sfx('hit');floater(`${O.name}에 당했다`,'#f1ebdc',PX,GROUND-200,18)}
+ else if(C.obsMul<1){sfx('smash');floater(`${O.name}${josa(O.name,'을','를')} 부쉈다`,'#f1ebdc',PX,GROUND-200,18);burst(e.x-G.cam,GROUND-20,'#6b6670',12)}
  else{sfx('hit');floater(`${O.name}에 부딪혔다`,'#f1ebdc',PX,GROUND-200,18)}
 }
 function collect(e){
@@ -1489,7 +1523,7 @@ function hud(){
 /* ───────── 갱신 ───────── */
 function update(dt){
  G.t+=dt;
- const target=G.state==='run'?280:G.state==='title'?200:G.state==='win'?110:0;
+ const target=G.state==='run'?280+[0,0,10,22,35][G.stage]:G.state==='title'?200:G.state==='win'?110:0;
  G.speed+=(target-G.speed)*Math.min(1,dt*(target>G.speed?2.5:8));
  if(G.speed<1&&target===0)G.speed=0;
  G.cam+=G.speed*dt;P.phase+=dt*G.speed/30;
@@ -1516,6 +1550,7 @@ function update(dt){
    if(moving&&e.vx&&!e.fling&&e.x-G.cam<W+40)e.x+=e.vx*dt;
    if((e.type==='log'||e.type==='boulder')&&moving)e.rot-=dt*(G.speed-e.vx)/24;
    if(e.fling>0){e.fling-=dt;if(e.fling<=0)e.gone=true}
+   if(OBS[e.type].dyn&&!(e.fling>0))updHaz(e,dt,moving);
   }
  }
  if(G.state==='run')interact();
@@ -1837,6 +1872,48 @@ function peachTree(c,x,y,s,t){
  c.lineWidth=5*s;c.beginPath();c.moveTo(x,y-60*s);c.quadraticCurveTo(x+30*s,y-80*s,x+44*s,y-104*s);c.moveTo(x-2*s,y-76*s);c.quadraticCurveTo(x-30*s,y-90*s,x-40*s,y-110*s);c.stroke();
  for(const[dx,dy,r]of[[-36,-116,30],[0,-130,34],[38,-112,30],[-12,-100,26],[20,-140,24]]){c.fillStyle=sph(c,x+dx*s,y+dy*s,r*s,'#f2a6bd');ell(c,x+dx*s,y+dy*s,r*s,r*s*.7);c.fill()}
  c.fillStyle='#fff0f4';for(let i=0;i<14;i++){ell(c,x+(hash(i+x)*90-45)*s,y+(-150+hash(i*2+x)*70)*s,2.2*s,2.2*s);c.fill()}
+}
+/* 움직이는 함정 그리기 */
+function drawHaz(e,sx){
+ const O=OBS[e.type],G0=GROUND;
+ if(e.type==='spikefloor'){
+  const hot=G.stage===3,ph=e.ph||0,warn=ph>.86,h=e.hNow>0?e.hNow:(warn?6+Math.sin(G.t*60)*2:0);
+  cx.fillStyle=lgrad(cx,0,G0-4,0,G0+8,[[0,hot?'#5a2a20':'#4a4650'],[1,hot?'#2a1410':'#24222a']]);rr(cx,sx-42,G0-4,84,12,3);cx.fill();
+  cx.fillStyle=hot?'rgba(255,120,40,.5)':'rgba(0,0,0,.45)';for(let k=0;k<5;k++)cx.fillRect(sx-34+k*16,G0-2,6,3);
+  if(h>0){for(let k=0;k<5;k++){const x=sx-32+k*16;
+   cx.fillStyle=lgrad(cx,x-6,0,x+6,0,hot?[[0,'#7a2a18'],[.5,'#ffb070'],[1,'#7a2a18']]:[[0,'#6a6a78'],[.5,'#e8e8f0'],[1,'#5a5a66']]);
+   poly(cx,[x-6,G0-2,x,G0-2-h,x+6,G0-2]);cx.fill()}}
+  if(warn&&e.hNow===0){cx.fillStyle='rgba(255,80,60,.35)';rr(cx,sx-42,G0-6,84,4,2);cx.fill()}
+ }else if(e.type==='fallrock'){
+  if(e.t<0)return;
+  const k=Math.min(1,e.t/.42),fy=e.t<.42?-(1-k*k)*520:0;
+  shadow(cx,sx,G0+4,8+28*k,.12+.25*k);
+  if(e.t<.42){cx.strokeStyle='rgba(255,230,200,.35)';cx.lineWidth=2;cx.beginPath();cx.moveTo(sx,G0+fy-60);cx.lineTo(sx,G0+fy-20);cx.stroke()}
+  cx.save();cx.translate(sx,G0+fy);cx.rotate(e.t<.42?e.t*8:0);
+  cx.fillStyle='#5a5560';poly(cx,[-28,4,-22,-26,-4,-42,18,-32,29,4]);cx.fill();
+  cx.fillStyle='#8c8794';poly(cx,[-22,-26,-4,-42,4,-20,-12,-10]);cx.fill();
+  cx.fillStyle='#46414e';poly(cx,[18,-32,29,4,8,4,10,-12]);cx.fill();
+  cx.strokeStyle='rgba(20,16,24,.6)';cx.lineWidth=1.5;cx.beginPath();cx.moveTo(-6,-36);cx.lineTo(0,-20);cx.lineTo(-8,-8);cx.stroke();
+  cx.restore();
+ }else if(e.type==='geyser'){
+  const ph=e.ph||0,warn=ph>.5&&ph<.68,h=e.hNow;
+  cx.fillStyle=sphere(cx,sx,G0,30,'#2a5a7a');ell(cx,sx,G0+2,32,8);cx.fill();
+  cx.fillStyle='rgba(160,220,255,.55)';ell(cx,sx,G0,22,4);cx.fill();
+  if(warn){for(let k=0;k<4;k++){const bx=sx+Math.sin(G.t*7+k*1.7)*14,by=G0-4-((G.t*60+k*9)%14);cx.fillStyle='rgba(220,245,255,.8)';ell(cx,bx,by,3,3);cx.fill()}}
+  if(h>0){const w=22+Math.sin(G.t*20)*2;
+   cx.fillStyle=lgrad(cx,sx-w,0,sx+w,0,[[0,'rgba(120,190,240,.55)'],[.5,'rgba(235,250,255,.95)'],[1,'rgba(120,190,240,.55)']]);
+   cx.beginPath();cx.moveTo(sx-w*.7,G0);cx.quadraticCurveTo(sx-w,G0-h*.6,sx-w*.6+Math.sin(G.t*18)*4,G0-h);cx.lineTo(sx+w*.6+Math.sin(G.t*16)*4,G0-h);cx.quadraticCurveTo(sx+w,G0-h*.6,sx+w*.7,G0);cx.closePath();cx.fill();
+   cx.fillStyle='rgba(255,255,255,.9)';for(let k=0;k<5;k++){ell(cx,sx+Math.sin(G.t*9+k)*w,G0-h+Math.cos(G.t*11+k*2)*6,5,4);cx.fill()}}
+ }else if(e.type==='bolt'){
+  if(e.t<0)return;
+  if(e.t<.45){const a=.3+.5*Math.abs(Math.sin(e.t*30));cx.strokeStyle=`rgba(255,240,140,${a})`;cx.lineWidth=3;ell(cx,sx,G0,36,9);cx.stroke();
+   cx.fillStyle=`rgba(255,240,140,${a*.25})`;cx.fillRect(sx-4,0,8,G0)}
+  else if(e.t<.6){cx.strokeStyle='#fffbe0';cx.lineWidth=6;cx.shadowColor='#ffe46a';cx.shadowBlur=24;cx.beginPath();let x=sx+20,y=-10;cx.moveTo(x,y);
+   for(let k=1;k<=8;k++){x=sx+(k%2?-16:14)*(1-k/9)+(hash(k+e.seed)-.5)*14;y=G0*k/8;cx.lineTo(x,y)}cx.stroke();cx.shadowBlur=0}
+  if(e.t>=.45&&e.t<2.1){cx.save();cx.globalAlpha*=Math.min(1,(2.1-e.t)/.3);
+   cx.fillStyle='rgba(40,20,10,.8)';ell(cx,sx,G0+2,36,7);cx.fill();
+   for(let k=0;k<4;k++)flame(cx,sx-24+k*16,G0+2,9+hash(k+e.seed)*4,G.t+k);cx.restore()}
+ }
 }
 function flame(c,x,y,s,t){const f=1+Math.sin(t*9)*.12+Math.sin(t*13)*.08;
  const g=c.createLinearGradient(0,y,0,y-s*2.2*f);g.addColorStop(0,'rgba(255,90,30,.95)');g.addColorStop(.5,'rgba(255,170,50,.9)');g.addColorStop(1,'rgba(255,240,150,0)');
@@ -2527,7 +2604,7 @@ function drawObs(e){
  cx.save();
  let fy=0;
  if(e.fling>0){const k=1-e.fling/.8;cx.globalAlpha=1-k;fy=-Math.sin(k*Math.PI)*60;cx.translate(sx+k*140,GROUND+fy);cx.rotate(k*4);cx.translate(-sx,-GROUND)}
- if(!O.air&&!(e.fling>0))shadow(cx,sx,GROUND+4,O.w+10,.3);
+ if(!O.air&&!O.dyn&&!(e.fling>0))shadow(cx,sx,GROUND+4,O.w+10,.3);
  if(O.air&&e.type!=='web'&&!(e.fling>0))shadow(cx,sx,GROUND+4,20,.16);
  if(e.type==='rock'){
   cx.fillStyle='#55505c';poly(cx,[sx-26,GROUND+4,sx-20,GROUND-22,sx-4,GROUND-36,sx+16,GROUND-28,sx+27,GROUND+4]);cx.fill();
@@ -2610,7 +2687,7 @@ function drawObs(e){
   cx.fillStyle='#ffd84a';ell(cx,sx-20,cy-7,2.4,2.4);cx.fill();cx.fillStyle='#000';ell(cx,sx-20.5,cy-7,1.1,1.1);cx.fill();
   cx.fillStyle='#141218';cx.beginPath();cx.moveTo(sx-2,cy);cx.quadraticCurveTo(sx-16,cy+26*fl,sx-30,cy+28*fl);cx.quadraticCurveTo(sx-18,cy+8*fl,sx-6,cy+4);cx.closePath();cx.fill();
   if(G.state==='run'&&rand()<.15)G.parts.push({x:sx+20,y:cy,vx:30,vy:20,r:2+rand()*2,life:.5,col:'#141218'});
- }
+ }else if(O.dyn)drawHaz(e,sx);
  cx.restore();
  // 1장에서는 피하는 방법을 위에 적어 준다
  if(G.stage===0&&!e.used&&sx>PX&&sx<W-40){
