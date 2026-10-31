@@ -942,14 +942,14 @@ const OBS={
  trap:{name:'덫',dmg:7,w:26,h:16},
  tomb:{name:'비석',dmg:8,w:22,h:52},
  boulder:{name:'굴러오는 바위',dmg:10,w:28,h:50,vx:-200},
- fireball:{name:'불덩이',dmg:9,w:22,air:true,vx:-240},
+ fireball:{name:'불덩이',dmg:9,w:22,air:true,vx:-240,bob:[26,5.5]},
  wave:{name:'파도',dmg:7,w:40,h:38,vx:-110},
  /* 움직이는 함정(dyn): 높이가 시간에 따라 바뀌고, 0일 때는 지나가도 안전하다 */
  spikefloor:{name:'가시 바닥',dmg:9,w:40,h:40,dyn:'cycle'},
  fallrock:{name:'떨어지는 돌',dmg:10,w:28,h:42,dyn:'fall'},
  geyser:{name:'물줄기',dmg:9,w:28,h:128,dyn:'geyser'},
  bolt:{name:'번개',dmg:11,w:36,h:26,dyn:'bolt'},
- ghostfly:{name:'떠도는 귀신',dmg:8,w:30,air:true,vx:-340},
+ ghostfly:{name:'떠도는 귀신',dmg:8,w:30,air:true,vx:-340,bob:[40,4.2]},
  scale:{name:'용의 비늘',dmg:10,w:0,air:true,dyn:'scale'},
 };
 /* 장별 함정 속도 (3장 → 5장으로 갈수록 빠르고 촉박하게). 0 · 1장 칸은 쓰지 않는다 */
@@ -1251,13 +1251,15 @@ function interact(){
   if(e.kind==='obs'){
    const O=OBS[e.type];if(O.dyn==='scale'||Math.abs(e.x-px)>=O.w)continue;
    let hit;
-   if(O.air){const top=P.y-heroH(),cy=-98;hit=top<cy+14&&P.y>cy-14}
+   if(O.air){const top=P.y-heroH(),cy=-98+bobY(e);hit=top<cy+14&&P.y>cy-14}
    else if(O.dyn)hit=e.strike||(e.hNow>0&&P.y>-e.hNow+4);
    else hit=P.y>-O.h+4;
    if(hit){e.used=true;hitObs(e,O);if(G.hp<=0){gameOver();return}}
   }
  }
 }
+/* 위아래로 출렁이며 날아오는 공중 장애물(bob: [진폭, 빠르기]): 지금 높이 차이 */
+function bobY(e,t=G.t){const b=OBS[e.type].bob;return b?Math.sin(t*b[1]+e.seed*2)*b[0]:0}
 /* 움직이는 함정 갱신: hNow가 지금 부딪히는 높이(0이면 안전) */
 function updHaz(e,dt,moving){
  const O=OBS[e.type],H=HAZ[G.stage]||HAZ[4],px=G.cam+PX,sx=e.x-G.cam;
@@ -2867,8 +2869,8 @@ function drawObs(e){
   cx.strokeStyle='rgba(30,26,36,.5)';cx.lineWidth=2;cx.beginPath();cx.moveTo(-10,-14);cx.lineTo(4,-2);cx.lineTo(-2,12);cx.moveTo(8,-18);cx.lineTo(14,-6);cx.stroke();cx.restore();
   if(!(e.fling>0)&&G.state==='run'&&rand()<.4)G.parts.push({x:sx+r,y:GROUND+2,vx:60+rand()*60,vy:-50-rand()*60,r:2+rand()*3,life:.35,col:'rgba(150,130,110,.7)'});
  }else if(e.type==='fireball'){
-  const cy=GROUND-98+Math.sin(G.t*8+e.seed)*3;
-  for(let k=0;k<6;k++){const tx=sx+10+k*12,a=1-k/6;cx.fillStyle=`rgba(255,${120+k*15},40,${a*.6})`;ell(cx,tx,cy+Math.sin(G.t*20+k)*3,12*a+3,9*a+2);cx.fill()}
+  const cy=GROUND-98+bobY(e);
+  for(let k=0;k<6;k++){const tx=sx+10+k*12,a=1-k/6;cx.fillStyle=`rgba(255,${120+k*15},40,${a*.6})`;ell(cx,tx,GROUND-98+bobY(e,G.t-k*.035)+Math.sin(G.t*20+k)*2,12*a+3,9*a+2);cx.fill()}
   const g=cx.createRadialGradient(sx-4,cy-3,2,sx,cy,18);g.addColorStop(0,'#fff6c0');g.addColorStop(.4,'#ffb030');g.addColorStop(1,'#d8401a');cx.fillStyle=g;ell(cx,sx,cy,16,14);cx.fill();
   if(G.state==='run'&&rand()<.5)G.parts.push({x:sx+14,y:cy,vx:60,vy:-20-rand()*40,r:2+rand()*2,life:.4,col:'#ff9a3a'});
  }else if(e.type==='wave'){
@@ -2889,7 +2891,7 @@ function drawObs(e){
   cx.fillStyle='#141218';cx.beginPath();cx.moveTo(sx-2,cy);cx.quadraticCurveTo(sx-16,cy+26*fl,sx-30,cy+28*fl);cx.quadraticCurveTo(sx-18,cy+8*fl,sx-6,cy+4);cx.closePath();cx.fill();
   if(G.state==='run'&&rand()<.15)G.parts.push({x:sx+20,y:cy,vx:30,vy:20,r:2+rand()*2,life:.5,col:'#141218'});
  }else if(e.type==='ghostfly'){
-  const cy=GROUND-100+Math.sin(G.t*8+e.seed)*5,k=1.55,fl=Math.sin(G.t*16+e.seed);
+  const cy=GROUND-98+bobY(e),k=1.55,fl=Math.sin(G.t*16+e.seed);
   cx.save();cx.translate(sx,cy);cx.scale(k,k);
   // 찢어진 꼬리
   cx.fillStyle=lgrad(cx,0,0,70,0,[[0,'rgba(200,210,235,.75)'],[1,'rgba(160,170,210,0)']]);
