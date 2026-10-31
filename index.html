@@ -812,7 +812,7 @@ const STAGES=[
 ];
 /* 보스: 문제를 하나 낼 때마다 스펠카드 탄막 한 장. pat은 탄막 종류, mouth는 탄이 나오는 위치 */
 const BOSSES={
- spider:{hp:1,spd:1,q:[1,2],mouth:[-72,-70],lines:['내 거미줄에서 빠져나갈 수 있겠느냐!'],
+ spider:{hp:2,spd:1,q:[1,2],mouth:[-72,-70],lines:['내 거미줄에서 빠져나갈 수 있겠느냐!'],
   spells:[{name:'蛛網天羅',read:'주망천라',chars:'蛛網絲',col:'#9b8fb0',pat:['rain','lines']}]},
  wolf:{hp:2,spd:1.05,q:[2],mouth:[-150,-124],lines:['크르릉… 네 글자 냄새가 난다!','달이 차오른다. 도망칠 곳은 없다!'],
   spells:[{name:'狼牙',read:'낭아',chars:'狼牙爪',col:'#d8d4cc',pat:['aimed','lines']},{name:'月下狂嘯',read:'월하광소',chars:'月嘯',col:'#e0533a',pat:['aimed','rain']}]},
