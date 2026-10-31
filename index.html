@@ -771,14 +771,14 @@ const ITEMS={
 };
 /* 주인공 3인: 능력치와 생김새 (art는 그림 종류, 초상화는 assets/portraits/{art}.jpg) */
 const CHARS={
- brain:{name:'서윤',title:'견습 술사',age:15,role:'지능형',art:'mage',hp:80,time:8,hints:2,shields:0,dmgMul:1,obsMul:1,healMul:1,scoreMul:1.2,jumps:1,scale:1.02,
-  abil:['제한 시간 +8초','붓 2자루를 들고 출발','정답 점수 ×1.2'],stats:{지력:5,체력:2,민첩:3},
+ brain:{name:'서윤',title:'견습 술사',age:15,role:'지능형',art:'mage',hp:80,time:8,hints:2,shields:0,dmgMul:1,obsMul:1,healMul:1,scoreMul:1.1,jumps:1,scale:1.02,
+  abil:['제한 시간 +8초','붓 2자루를 들고 출발','정답 점수 ×1.1'],stats:{지력:5,체력:2,민첩:3},
   look:{skin:'#f3cfae',hair:'#15131a',robe:'#eef1f6',outer:'#2b4a8a',trim:'#c9a24a',pants:'#d9dde6',shoe:'#2a2a3a',sash:'#2b4a8a'}},
- power:{name:'강현',title:'떠돌이 검객',age:16,role:'체력형',art:'sword',hp:140,time:0,hints:0,shields:0,dmgMul:.7,obsMul:.5,healMul:1,scoreMul:1,jumps:1,scale:1.06,
-  abil:['최대 HP 140','받는 피해 30% 감소','장애물·탄막 피해 절반'],stats:{지력:2,체력:5,민첩:2},
+ power:{name:'강현',title:'떠돌이 검객',age:16,role:'체력형',art:'sword',hp:115,time:0,hints:0,shields:0,dmgMul:.85,obsMul:.8,healMul:1,scoreMul:1,jumps:1,scale:1.06,
+  abil:['최대 HP 115','문제 오답 피해 15% 감소','장애물·탄막 피해 20% 감소'],stats:{지력:2,체력:5,민첩:2},
   look:{skin:'#e8b88f',hair:'#121116',coat:'#222128',inner:'#dcd8cc',sash:'#a8322a',trim:'#c9a24a',pants:'#26252c',shoe:'#18171c',band:'#a8322a'}},
- swift:{name:'하람',title:'바람 궁수',age:14,role:'민첩형',art:'archer',hp:100,time:0,hints:0,shields:1,dmgMul:1,obsMul:1,healMul:1.5,scoreMul:1,jumps:2,scale:.98,
-  abil:['공중에서 한 번 더 점프','회복 아이템 효과 ×1.5','부적 1장을 들고 출발'],stats:{지력:3,체력:3,민첩:5},
+ swift:{name:'하람',title:'바람 궁수',age:14,role:'민첩형',art:'archer',hp:95,time:0,hints:0,shields:1,dmgMul:1,obsMul:1,healMul:1.5,scoreMul:1.05,jumps:2,scale:.98,
+  abil:['공중에서 한 번 더 점프','회복 아이템 효과 ×1.5','부적 1장을 들고 출발','정답 점수 ×1.05'],stats:{지력:3,체력:3,민첩:5},
   look:{skin:'#f5d0ae',hair:'#1a1416',jacket:'#a8282a',goreum:'#e9b949',pants:'#f0ebe0',shoe:'#2a1c18',daenggi:'#c8372a'}},
 };
 const STATCOL={지력:'#6d8fc4',체력:'#e0533a',민첩:'#3aa893'};
@@ -1132,7 +1132,7 @@ function updateDodge(dt){
   if(b.y>GROUND+6||b.x<-40||b.x>W+40||b.y<-60&&b.vy<0)b.dead=true;
   if(!b.dead&&P.inv<=0){const cxp=Math.max(px-14,Math.min(b.x,px+14)),cyp=Math.max(top,Math.min(b.y,bot));
    if((b.x-cxp)**2+(b.y-cyp)**2<b.r*b.r){b.dead=true;d.hits++;P.inv=1;sfx('hit');burst(b.x,b.y,b.col,8,.5);
-    damage(Math.max(1,Math.round(6*CH().obsMul*G.mod.dmg)),false);if(G.hp<=0){G.bullets=[];setMovePad(false);gameOver();return}}}
+    damage(Math.max(1,Math.round(7*CH().obsMul*G.mod.dmg)),false);if(G.hp<=0){G.bullets=[];setMovePad(false);gameOver();return}}}
  }
  G.bullets=G.bullets.filter(b=>!b.dead);
  if(d.t>=d.dur&&!G.bullets.length||d.t>=d.dur+2)endDodge();
@@ -1357,7 +1357,7 @@ function showTitle(){
   <h2>이야기</h2>
   <p class="keys">기말고사 전날 밤 한문 교과서를 베고 잠든 학생이 글자를 먹는 요괴가 날뛰는 옛날로 떨어졌다. 고개를 넘을 때마다 만나는 사람들과 대화하고, 선택에 따라 회복·부적·점수 배율 같은 이득이나 최대 HP 감소·피해 증가 같은 페널티를 얻는다. 한문 문제로 운을 시험하는 선택도 있다.</p>
   <h2>고개마다 보스 · 스펠카드 탄막</h2>
-  <p class="keys">거대거미(巨蛛) → 늑대괴수(狼妖) → 귀혼(鬼魂) → 요마(妖魔) → 용(龍). 보스는 문제를 내기 전마다 스펠카드를 펼친다. 조준탄 · 일자탄 · 글자비 · 회오리탄을 좌우로 움직이며 피하자. 한 발도 맞지 않으면 +20점, 맞으면 한 발에 HP −6.</p>
+  <p class="keys">거대거미(巨蛛) → 늑대괴수(狼妖) → 귀혼(鬼魂) → 요마(妖魔) → 용(龍). 보스는 문제를 내기 전마다 스펠카드를 펼친다. 조준탄 · 일자탄 · 글자비 · 회오리탄을 좌우로 움직이며 피하자. 한 발도 맞지 않으면 +20점, 맞으면 한 발에 HP −7.</p>
   <h2>아이템</h2>
   <ul class="items">${Object.values(ITEMS).map(I=>`<li><span class="ic" style="background:${I.col}">${I.han}</span><span><b>${I.name}</b><br>${I.desc}</span></li>`).join('')}</ul>
   <p class="keys" style="margin-top:8px">공중에 떠 있는 아이템은 점프해야 먹을 수 있다.</p>
