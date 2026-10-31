@@ -131,6 +131,8 @@ th{color:var(--muted);font-weight:400}
 /* 문제 */
 .qmeta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px}
 .cat{color:var(--paper);border:1px solid var(--line);padding:0 8px;border-radius:6px}
+.cat .ctype{color:#c792f2;font-weight:700}
+.lvl{font-family:var(--han),var(--body)}
 .dmg{margin-left:auto;color:var(--verm)}
 .pips{color:var(--verm);letter-spacing:2px}
 .timer{position:relative;height:8px;margin:12px 0 4px;background:var(--ink-3);border-radius:9px}
@@ -753,9 +755,9 @@ const URLSET=(()=>{
 
 /* ───────── 규칙 ───────── */
 const LV={
- 1:{name:'하',pts:10,dmg:10,time:20,cls:'l1'},
- 2:{name:'중',pts:20,dmg:15,time:25,cls:'l2'},
- 3:{name:'상',pts:30,dmg:20,time:30,cls:'l3'},
+ 1:{name:'下',pts:10,dmg:10,time:20,cls:'l1'},
+ 2:{name:'中',pts:20,dmg:15,time:25,cls:'l2'},
+ 3:{name:'上',pts:30,dmg:20,time:30,cls:'l3'},
  4:{name:'보스',pts:50,dmg:30,time:30,cls:'l4'},
 };
 const ITEMS={
@@ -1035,7 +1037,7 @@ function renderQuiz(){
  const pts=Math.round(L.pts*C.scoreMul*G.mod.score),dmg=Math.round(L.dmg*C.dmgMul*G.mod.dmg);
  const pips=e.boss?`<span class="pips" title="보스의 남은 기력">${'●'.repeat(e.hp)}${'○'.repeat(e.max-e.hp)}</span>`:'';
  showPanel(`<div class="quiz">
-  <div class="qmeta"><span class="lvl ${L.cls}">${L.name} · ${pts}점</span><span class="cat">${esc(q.u==='자전'?'자전 · ':q.u+'과 · ')}${esc(q.c)}</span>${pips}<span class="dmg">오답 시 HP −${dmg}</span></div>
+  <div class="qmeta"><span class="lvl ${L.cls}">${L.name} · ${pts}점</span><span class="cat">${esc(q.u==='자전'?'자전 · ':q.u+'과 · ')}<b class="ctype">(${esc(q.c)})</b></span>${pips}<span class="dmg">오답 시 HP −${dmg}</span></div>
   <div class="timer"><i id="tbar"></i><b id="tnum">${c.time}초</b></div>
   ${e.boss?`<p class="boss-line"><img src="assets/portraits/${e.mob}.jpg" alt="">${MOBS[e.mob].name}: “${BOSSES[e.mob].lines[Math.min(BOSSES[e.mob].lines.length-1,e.max-e.hp)]}”</p>`:''}
   <p class="qtext">${esc(q.q)}</p>
@@ -2433,14 +2435,16 @@ function drawEnemy(e){
   else MOBDRAW[e.mob](c,G.t+(e.x%7))},
   {noInk:e.mob==='wisp'||e.mob==='firebird',flash:Math.max(hk,e.dying>0?e.dying:0)*.85,w:boss?400:300,h:boss?350:270});
  if(!(e.dying>0)&&G.state!=='dodge'){
-  const M=MOBS[e.mob],label=boss?`${M.name} ${M.han}`:`${M.name} · ${e.q.c}`,ty=GROUND-MOBH[e.mob]*sc-24;
-  cx.font='700 23px "Noto Sans KR",sans-serif';const tw=cx.measureText(label).width+28;
+  const M=MOBS[e.mob],nmTxt=boss?`${M.name} ${M.han}`:M.name,catTxt=boss?'':` (${e.q.c})`,ty=GROUND-MOBH[e.mob]*sc-24;
+  cx.font='700 23px "Noto Sans KR",sans-serif';const w1=cx.measureText(nmTxt).width,w2=catTxt?cx.measureText(catTxt).width:0,tw=w1+w2+28;
   cx.fillStyle='rgba(0,0,0,.2)';rr(cx,sx+off-tw/2+3,ty-13,tw,32,4);cx.fill();
   cx.fillStyle=lgrad(cx,0,ty-16,0,ty+16,[[0,'#fbf4e2'],[1,'#e2d5b8']]);rr(cx,sx+off-tw/2,ty-16,tw,32,4);cx.fill();
   for(const rx of[sx+off-tw/2-3,sx+off+tw/2-2]){cx.fillStyle=lgrad(cx,rx,0,rx+6,0,[[0,'#3e2a1c'],[1,'#8a5a3a']]);rr(cx,rx,ty-21,6,42,2);cx.fill()}
-  cx.fillStyle='#1b1a22';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(label,sx+off,ty+1);cx.textBaseline='alphabetic';
+  cx.textAlign='left';cx.textBaseline='middle';const tx=sx+off-(w1+w2)/2;
+  cx.fillStyle='#1b1a22';cx.fillText(nmTxt,tx,ty+1);if(catTxt){cx.fillStyle='#7a2fb0';cx.fillText(catTxt,tx+w1,ty+1)}
+  cx.textAlign='center';cx.textBaseline='alphabetic';
   {const col={1:'#3d6fb0',2:'#1f8a74',3:'#a8407a',4:'#d0432a'}[e.lvl],nm=LV[e.lvl].name;
-   cx.font='800 21px "Noto Sans KR",sans-serif';const r=Math.max(18,cx.measureText(nm).width/2+9),cy=ty-16-r-4;
+   cx.font=e.lvl<4?'900 23px "Noto Serif KR",serif':'800 21px "Noto Sans KR",sans-serif';const r=Math.max(18,cx.measureText(nm).width/2+9),cy=ty-16-r-4;
    cx.fillStyle='rgba(0,0,0,.28)';ell(cx,sx+off+2,cy+3,r,r);cx.fill();
    cx.fillStyle='#ffffff';ell(cx,sx+off,cy,r,r);cx.fill();cx.lineWidth=3.5;cx.strokeStyle=col;cx.stroke();
    cx.fillStyle=col;cx.textAlign='center';cx.textBaseline='middle';cx.fillText(nm,sx+off,cy+1);cx.textBaseline='alphabetic'}
