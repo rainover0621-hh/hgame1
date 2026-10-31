@@ -1432,9 +1432,12 @@ function startDodge(e){
 function shoot(x,y,vx,vy,ay=0,warn=0){const SP=G.dodge.SP;G.bullets.push({x,y,vx,vy,ay,warn,ch:SP.chars[Math.floor(rand()*SP.chars.length)],col:SP.col,r:11})}
 /* 탄막 종류: aimed 부채꼴 조준탄 · lines 발밑/머리 높이 일자탄 · rain 글자비 · spiral 회오리탄 */
 const PATS={
- aimed:{every:1.1,fire(d,bx,by,px,py,v){const a0=Math.atan2(py-by,px-bx);for(let i=-2;i<=2;i++){const a=a0+i*.2;shoot(bx,by,Math.cos(a)*240*v,Math.sin(a)*240*v)}}},
- lines:{every:1.9,fire(d,bx,by,px,py,v){const low=rand()<.5;for(let i=0;i<3;i++)shoot(bx+i*34,low?GROUND-18:GROUND-100,-320*v,0)}},
- rain:{every:.34,fire(d,bx,by,px,py,v){shoot(40+rand()*480,-20,0,60,420*v,1)}},
+ /* 조준탄: 주인공 발목 높이를 겨눈 두 발 연속탄. 점프로 넘거나 좌우로 비켜 피한다 */
+ aimed:{every:1.25,fire(d,bx,by,px,py,v){const a=Math.atan2(GROUND-35-by,px-bx),sp=230*v;for(let i=0;i<2;i++){const back=i*.09*sp;shoot(bx-Math.cos(a)*back,by-Math.sin(a)*back,Math.cos(a)*sp,Math.sin(a)*sp)}}},
+ /* 일자탄: 발밑(점프) 또는 머리 높이(숙이기). 조준탄과 함께 나오는 스펠에서는 발밑으로만 */
+ lines:{every:1.9,fire(d,bx,by,px,py,v){const low=d.SP.pat.includes('aimed')||rand()<.5;for(let i=0;i<3;i++)shoot(bx+i*26,low?GROUND-18:GROUND-100,-320*v,0)}},
+ /* 글자비: 땅에 붉은 표시가 먼저 보인다. 주인공 바로 위에는 덜 떨어지게(한 번 다시 고름) */
+ rain:{every:.6,fire(d,bx,by,px,py,v){let x=40+rand()*480;if(Math.abs(x-px)<45)x=40+rand()*480;shoot(x,-20,0,60,420*v,1)}},
  spiral:{every:.15,fire(d,bx,by,px,py,v){d.ang+=.35;const a0=Math.atan2(py-by,px-bx);for(const o of[-.3,.3]){const a=a0+Math.sin(d.ang)*.9+o;shoot(bx,by,Math.cos(a)*175*v,Math.sin(a)*175*v)}}},
 };
 function updateDodge(dt){
@@ -1442,8 +1445,11 @@ function updateDodge(dt){
  const bx=e.x-G.cam+(e.back||0)+B.mouth[0]*sc,by=GROUND+B.mouth[1]*sc,px=PX+P.dx,py=GROUND+P.y-60;
  if(d.t>1.4&&d.t<d.dur-1.2){
   const n=d.SP.pat.length;
-  for(const p of d.SP.pat){const T=PATS[p],every=T.every*(n>1&&(p==='rain'||p==='spiral')?1.4:1)/B.spd;
-   d.timer[p]=(d.timer[p]??.2)-dt;if(d.timer[p]<=0){d.timer[p]=every;T.fire(d,bx,by,px,py,B.spd)}}
+  const both=d.SP.pat.includes('aimed')&&d.SP.pat.includes('lines');
+  for(const p of d.SP.pat){const T=PATS[p];let every=T.every*(n>1&&(p==='rain'||p==='spiral')?(n>=3?1.8:1.4):1)/B.spd;
+   /* 조준탄과 일자탄이 함께면 일자탄은 조준탄 두 번에 한 번, 사이에 끼워 겹치지 않게 */
+   if(both&&p==='lines')every=2*PATS.aimed.every/B.spd;
+   d.timer[p]=(d.timer[p]??(both&&p==='lines'?.2+PATS.aimed.every/B.spd/2:.2))-dt;if(d.timer[p]<=0){d.timer[p]=every;T.fire(d,bx,by,px,py,B.spd)}}
  }
  const top=GROUND+P.y-heroH()*CH().scale,bot=GROUND+P.y;
  for(const b of G.bullets){
