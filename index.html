@@ -878,6 +878,7 @@ function pick(lvls){
  }
  const q=c[Math.floor(rand()*c.length)];G.used.add(q.id);return q;
 }
+const TIME_BONUS=.5; /* 바로 맞히면 기본 점수의 50%를 더 준다. 시간이 지날수록 줄어 0이 된다 */
 const ITEM_RATE=.7; /* 아이템이 나올 확률 (1이면 매번) */
 function pickItem(){
  const keys=Object.keys(ITEMS),tot=keys.reduce((s,k)=>s+ITEMS[k].w,0);let r=rand()*tot;
@@ -1064,7 +1065,11 @@ function answer(i){
  c.ok=ok;c.pick=i;
  if(ok){
   G.correct++;G.combo++;G.maxCombo=Math.max(G.maxCombo,G.combo);
-  const bonus=G.combo>=3?Math.min(25,(G.combo-2)*5):0;c.gain=Math.round((L.pts+bonus)*C.scoreMul*G.mod.score);G.score+=c.gain;
+  const bonus=G.combo>=3?Math.min(25,(G.combo-2)*5):0;
+  /* 빨리 맞힐수록 추가 점수: 기본 점수의 최대 TIME_BONUS만큼. 술사의 추가 시간은 빼고 계산해 캐릭터끼리 공평하게 */
+  const base=Math.max(1,c.time-C.time),frac=Math.max(0,Math.min(1,1-(c.time-c.left)/base));
+  c.fast=Math.round(L.pts*TIME_BONUS*frac);
+  c.gain=Math.round((L.pts+bonus+c.fast)*C.scoreMul*G.mod.score);G.score+=c.gain;
   P.attack=.45;P.happy=1.4;sfx('ok');setTimeout(()=>{G.hitstop=.09;G.zoom=1.06},140);
   if(e.boss){e.hp--;e.hit=.5;if(e.hp<=0)e.dying=1}else e.dying=.6;
   setTimeout(()=>{burst(e.x-G.cam,GROUND-(e.boss?80:50),'#141218',e.boss?40:24);sfx(e.boss&&e.hp<=0?'boss':'defeat')},120);
@@ -1081,7 +1086,7 @@ function renderFeedback(){
  const hb=$('#hintBtn');if(hb)hb.disabled=true;
  const right=c.opts.find(o=>o.ok).t;
  const head=c.ok
-  ?`<strong class="v ok">정답! +${c.gain}점</strong>${G.combo>=3?`<span class="combo">${G.combo}연속 콤보</span>`:''}`
+  ?`<strong class="v ok">정답! +${c.gain}점</strong>${c.fast>0?`<span class="combo">빠른 답 +${c.fast}</span>`:''}${G.combo>=3?`<span class="combo">${G.combo}연속 콤보</span>`:''}`
   :`<strong class="v no">${c.pick<0?'시간 초과':'오답'} · ${c.blocked?'부적이 피해를 막았다':`HP −${c.dmg}`}</strong>`;
  const label=G.hp<=0?'결과 보기':(c.e.boss&&c.e.hp>0?'다음 문제':'계속 달리기');
  const fb=$('#fb');
@@ -1343,7 +1348,7 @@ function showTitle(){
   <table><thead><tr><th>난이도</th><th>정답 점수</th><th>오답 피해</th><th>제한 시간</th></tr></thead><tbody>
   ${[1,2,3,4].map(k=>`<tr><td><span class="lvl ${LV[k].cls}">${LV[k].name}</span></td><td>${LV[k].pts}점</td><td>HP −${LV[k].dmg}</td><td>${LV[k].time}초</td></tr>`).join('')}
   </tbody></table>
-  <p class="keys" style="margin-top:8px">모험가의 능력에 따라 점수·피해·시간이 달라진다. 3연속 정답부터 콤보 보너스 +5점씩(최대 +25). 장이 바뀔 때 주막에서 HP +15.</p>
+  <p class="keys" style="margin-top:8px">모험가의 능력에 따라 점수·피해·시간이 달라진다. 빨리 맞힐수록 기본 점수의 최대 50%를 더 받는다. 3연속 정답부터 콤보 보너스 +5점씩(최대 +25). 장이 바뀔 때 주막에서 HP +15.</p>
   <h2>장애물</h2>
   <table><tbody>
    <tr><td>돌부리 · 먹물 웅덩이</td><td>점프</td><td>HP −5</td></tr>
