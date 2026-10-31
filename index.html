@@ -922,8 +922,8 @@ const ITEMS={
 };
 /* 주인공 3인: 능력치와 생김새 (art는 그림 종류, 초상화는 assets/portraits/{art}.jpg) */
 const CHARS={
- brain:{name:'서윤',title:'견습 술사',age:15,role:'지능형',art:'mage',hp:120,time:8,hints:2,shields:0,dmgMul:1,obsMul:1,healMul:1,scoreMul:1.1,jumps:1,scale:1.02,
-  abil:['제한 시간 +8초','붓 2자루를 들고 출발','정답 점수 ×1.1'],stats:{지력:5,체력:2,민첩:3},
+ brain:{name:'서윤',title:'견습 술사',age:15,role:'지능형',art:'mage',hp:120,time:8,hints:2,shields:0,dmgMul:.9,obsMul:.9,healMul:1,scoreMul:1.1,jumps:1,scale:1.02,
+  abil:['제한 시간 +8초','붓 2자루를 들고 출발','정답 점수 ×1.1','받는 피해 10% 감소'],stats:{지력:5,체력:2,민첩:3},
   look:{skin:'#f3cfae',hair:'#15131a',robe:'#eef1f6',outer:'#2b4a8a',trim:'#c9a24a',pants:'#d9dde6',shoe:'#2a2a3a',sash:'#2b4a8a'}},
  power:{name:'강현',title:'떠돌이 검객',age:16,role:'체력형',art:'sword',hp:140,time:0,hints:0,shields:0,dmgMul:.95,obsMul:.95,healMul:1,scoreMul:1,jumps:1,scale:1.06,
   abil:['최대 HP 140 (가장 튼튼함)','받는 피해 5% 감소','장애물을 부수며 달린다'],stats:{지력:2,체력:5,민첩:2},
@@ -1145,14 +1145,20 @@ function buildStage(i,x0){
  const S=STAGES[i];let x=x0;
  /* 연속 장애물 묶음 수(combos)가 정해진 장은 요괴 사이 구간에 무작위로 나눠 둔다 */
  const D=DIFF[i];G.comboPlan=[];if(D.combos!=null){const gaps=S.enemies.length-1;G.comboPlan=Array(gaps).fill(0);for(let c=0;c<D.combos;c++)G.comboPlan[Math.floor(rand()*gaps)]++}
- let gapNo=0;
+ let gapNo=0;const gaps=[];
  S.enemies.forEach((lvl,k)=>{
   let gap;
   if(k===0){gap=900;if(i===0)addObs('rock',x+gap*.3);if(i===0||rand()<ITEM_RATE)G.ents.push({kind:'item',type:i===0?'pil':pickItem(),x:x+gap*.6,y:GROUND-28})}
   else gap=planGap(S,i,x,G.comboPlan[gapNo++]||0);
+  gaps.push([x,gap]);
   x+=gap;
   const q=pick([lvl]);G.ents.push({kind:'enemy',x,q,lvl:q.l,mob:pickMob(S,q.l)});
  });
+ /* 장마다 HP 회복 아이템을 꼭 두 번(약첩 하나 · 산삼 하나) 낸다: 서로 다른 구간의 가운데쯤, 땅 높이 */
+ {const idx=gaps.map((_,k)=>k);const pickG=()=>idx.splice(Math.floor(rand()*idx.length),1)[0];
+  for(const type of ['yak','sam']){const k=idx.length?pickG():0,[gx,gl]=gaps[k]||[x0,900];
+   let ix=gx+gl*(.4+rand()*.2);const near=G.ents.filter(e=>e.kind==='obs'&&Math.abs(e.x-ix)<60);if(near.length)ix=near[0].x+(near[0].x<ix?70:-70);
+   G.ents.push({kind:'item',type,x:ix,y:GROUND-28,must:true})}}
  if(S.boss){
   x+=1300;
   if(rand()<ITEM_RATE)G.ents.push({kind:'item',type:'sam',x:x-820,y:GROUND-28});
