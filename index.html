@@ -1131,7 +1131,7 @@ function planGap(S,i,x0,combos=0){
    else placeObs(m,x+70+rand()*40);
   }
   prevAir=air;
-  if(k===itemAt&&rand()<ITEM_RATE){const ia=rand()<.5;G.ents.push({kind:'item',type:pickItem(),x:x+D.sp*.5,y:ia?GROUND-165:GROUND-28,air:ia})}
+  if(k===itemAt)G.itemSlots.push({x:x+D.sp*.5,air:rand()<.5});
   x+=D.sp+rand()*50;
  }
  return x+(D.post??360)-x0;
@@ -1161,10 +1161,10 @@ function buildStage(i,x0){
  const S=STAGES[i];let x=x0;
  /* 연속 장애물 묶음 수(combos)가 정해진 장은 요괴 사이 구간에 무작위로 나눠 둔다 */
  const D=DIFF[i];G.comboPlan=[];if(D.combos!=null){const gaps=S.enemies.length-1;G.comboPlan=Array(gaps).fill(0);for(let c=0;c<D.combos;c++)G.comboPlan[Math.floor(rand()*gaps)]++}
- let gapNo=0;const gaps=[];
+ let gapNo=0;const gaps=[];G.itemSlots=[];
  S.enemies.forEach((lvl,k)=>{
   let gap;
-  if(k===0){gap=900;if(i===0)addObs('rock',x+gap*.3);if(i===0||rand()<ITEM_RATE)G.ents.push({kind:'item',type:i===0?'pil':pickItem(),x:x+gap*.6,y:GROUND-28})}
+  if(k===0){gap=900;if(i===0)addObs('rock',x+gap*.3);G.itemSlots.push({x:x+gap*.6,air:false,first:true})}
   else gap=planGap(S,i,x,G.comboPlan[gapNo++]||0);
   gaps.push([x,gap]);
   x+=gap;
@@ -1174,15 +1174,34 @@ function buildStage(i,x0){
  {const idx=gaps.map((_,k)=>k);const pickG=()=>idx.splice(Math.floor(rand()*idx.length),1)[0];
   for(const type of ['yak','sam']){const k=idx.length?pickG():0,[gx,gl]=gaps[k]||[x0,900];
    let ix=gx+gl*(.4+rand()*.2);const near=G.ents.filter(e=>e.kind==='obs'&&Math.abs(e.x-ix)<60);if(near.length)ix=near[0].x+(near[0].x<ix?70:-70);
-   G.ents.push({kind:'item',type,x:ix,y:GROUND-28,must:true})}}
+   G.itemSlots.push({x:ix,air:false})}}
  if(S.boss){
   x+=1300;
-  if(rand()<ITEM_RATE)G.ents.push({kind:'item',type:'sam',x:x-820,y:GROUND-28});
+  G.itemSlots.push({x:x-820,air:false});
   addObs('crow',x-500);
-  if(rand()<ITEM_RATE)G.ents.push({kind:'item',type:'bu',x:x-380,y:GROUND-165,air:true});
+  G.itemSlots.push({x:x-380,air:true});
   const B=BOSSES[S.boss];G.ents.push({kind:'enemy',boss:true,x,hp:B.hp,max:B.hp,lvl:4,mob:S.boss,back:0,qlv:B.q});
  }
+ placeItems(i);
  G.stDone=0;G.stTotal=S.enemies.length+(S.boss?1:0);
+}
+/* 아이템 배치: 한 장에 모두 ITEM_MAX(5)개 이하.
+   약첩 · 산삼은 각각 1~3개(평균 약 2개), 남는 자리에 부적 · 붓을 하나씩 70% 확률로 넣는다.
+   1장은 첫 구간에 붓이 꼭 나온다. 자리(구간 가운데 · 보스 앞 등)는 무작위로 고른다 */
+const ITEM_MAX=5;
+function placeItems(i){
+ const slots=G.itemSlots.slice(),n13=()=>{const r=rand();return r<.25?1:r<.75?2:3};
+ let yak=n13(),sam=n13();const capHp=i===0?ITEM_MAX-1:ITEM_MAX;
+ while(yak+sam>capHp){if(rand()<.5&&yak>1)yak--;else if(sam>1)sam--;else yak--}
+ const list=[];
+ if(i===0)list.push('pil');
+ for(let k=0;k<yak;k++)list.push('yak');for(let k=0;k<sam;k++)list.push('sam');
+ while(list.length<ITEM_MAX&&rand()<ITEM_RATE)list.push(rand()<26/46?'bu':'pil');
+ const put=(type,sl)=>G.ents.push({kind:'item',type,x:sl.x,y:sl.air?GROUND-165:GROUND-28,air:!!sl.air});
+ if(i===0){const f=slots.findIndex(s=>s.first);put(list.shift(),slots.splice(f,1)[0])}
+ /* 약첩 · 산삼은 되도록 땅 높이 자리에, 부적 · 붓은 남은 자리(공중 포함)에 */
+ for(const type of list){if(!slots.length)break;const hp=type==='yak'||type==='sam',pool=slots.map((s,k)=>k).filter(k=>hp?!slots[k].air:true),use=pool.length?pool:slots.map((s,k)=>k);
+  put(type,slots.splice(use[Math.floor(rand()*use.length)],1)[0])}
 }
 
 /* ───────── 소리 ───────── */
