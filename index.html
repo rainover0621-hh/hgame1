@@ -209,6 +209,19 @@ th{color:var(--muted);font-weight:400}
 .fxs{display:flex;flex-wrap:wrap;gap:4px}
 .fx{display:inline-block;font-size:12px;padding:1px 8px;border-radius:6px}
 .fx.good{background:rgba(58,168,147,.22);color:#86e3cc}.fx.bad{background:rgba(224,83,58,.22);color:#ffa18e}.fx.risk{background:rgba(233,185,73,.18);color:var(--gold)}
+/* 이야기 창: 넉넉한 크기와 큰 글자 */
+.story{gap:18px}
+.story .line{font-size:22px;line-height:1.8;padding:20px 22px;min-height:4.6em}
+.story .skip{font-size:16px}
+.story .sprog{font-size:15px}
+.story .choice{gap:10px;padding:18px 22px;border-radius:14px}
+.story .choice b{font-size:22px;line-height:1.4}
+.story .choice b kbd{font-size:.8em;margin-right:10px}
+.story .fxs{gap:8px}
+.story .fx{font-size:16px;padding:4px 12px;border-radius:8px}
+.story .qtext{font-size:24px}
+.story .exp{font-size:18.5px}
+@container (min-width:760px){.panel:has(.story){width:min(64%,760px);padding:24px}}
 .journey{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13px}
 .journey li{background:var(--ink-3);border-radius:8px;padding:8px 10px}
 .send{display:flex;flex-wrap:wrap;gap:8px}
