@@ -923,7 +923,7 @@ const ITEMS={
 };
 /* 주인공 3인: 능력치와 생김새 (art는 그림 종류, 초상화는 assets/portraits/{art}.jpg) */
 const CHARS={
- brain:{name:'서윤',title:'견습 술사',age:15,role:'지능형',art:'mage',hp:120,time:8,hints:2,shields:0,dmgMul:.9,obsMul:.9,healMul:1,scoreMul:1.1,jumps:1,scale:1.02,
+ brain:{name:'서윤',title:'견습 술사',age:15,role:'지능형',art:'mage',hp:110,time:8,hints:2,shields:0,dmgMul:.9,obsMul:.9,healMul:1,scoreMul:1.1,jumps:1,scale:1.02,
   abil:['제한 시간 +8초','붓 2자루를 들고 출발','정답 점수 ×1.1','받는 피해 10% 감소','장애물 · 탄막에 맞으면 20% 확률로 HP +10'],stats:{지력:5,체력:2,민첩:3},
   look:{skin:'#f3cfae',hair:'#15131a',robe:'#eef1f6',outer:'#2b4a8a',trim:'#c9a24a',pants:'#d9dde6',shoe:'#2a2a3a',sash:'#2b4a8a'}},
  power:{name:'강현',title:'떠돌이 검객',age:16,role:'체력형',art:'sword',hp:140,time:0,hints:0,shields:0,dmgMul:.95,obsMul:.95,healMul:1,scoreMul:1,jumps:1,scale:1.06,
@@ -1351,10 +1351,10 @@ function updHaz(e,dt,moving){
 /* 보기 속 한자는 20% 크게 */
 const hjBig=t=>t.replace(/[\u3400-\u9fff□]+/g,m=>`<span class="ohj">${m}</span>`);
 const josa=(w,a,b)=>(w.charCodeAt(w.length-1)-0xAC00)%28?a:b;
-/* 3~5장은 장애물이 많은 대신 한 번 부딪힐 때 피해를 70%로 */
-const OBS_STAGE_MUL=[1,1,.7,.7,.7];
+/* 3~5장은 장애물이 많은 대신 한 번 부딪힐 때 피해를 1씩 덜 받는다 */
+const OBS_STAGE_SUB=[0,0,1,1,1];
 function hitObs(e,O){
- const C=CH(),n=Math.max(1,Math.round(O.dmg*OBS_STAGE_MUL[G.stage]*C.obsMul*G.mod.dmg));
+ const C=CH(),n=Math.max(1,Math.round((O.dmg-OBS_STAGE_SUB[G.stage])*C.obsMul*G.mod.dmg));
  damage(n,false);e.fling=.8;
  if(O.dyn&&e.type!=='fallrock'&&e.type!=='lavadrop'){sfx('hit');floater(`${O.name}에 당했다`,'#f1ebdc',PX,GROUND-200,18)}
  else if(C.obsMul<1){sfx('smash');floater(`${O.name}${josa(O.name,'을','를')} 부쉈다`,'#f1ebdc',PX,GROUND-200,18);burst(e.x-G.cam,GROUND-20,'#6b6670',12)}
@@ -1455,14 +1455,14 @@ function startDodge(e){
 function shoot(x,y,vx,vy,ay=0,warn=0){const SP=G.dodge.SP;G.bullets.push({x,y,vx,vy,ay,warn,ch:SP.chars[Math.floor(rand()*SP.chars.length)],col:SP.col,r:11})}
 /* 탄막 종류: aimed 부채꼴 조준탄 · lines 발밑/머리 높이 일자탄 · rain 글자비 · spiral 회오리탄 */
 const PATS={
- /* 조준탄: 주인공 발목 높이를 겨눈 두 발 연속탄. 점프로 넘거나 좌우로 비켜 피한다 */
- aimed:{every:1.25,fire(d,bx,by,px,py,v){const a=Math.atan2(GROUND-35-by,px-bx),sp=230*v;for(let i=0;i<2;i++){const back=i*.09*sp;shoot(bx-Math.cos(a)*back,by-Math.sin(a)*back,Math.cos(a)*sp,Math.sin(a)*sp)}}},
+ /* 조준탄: 주인공 몸통을 겨눈 7갈래 부채꼴. 가운데 근처 두 갈래가 비어 있어 그 틈으로 비켜 피한다 */
+ aimed:{every:1.3,fire(d,bx,by,px,py,v){const a0=Math.atan2(GROUND-60-by,px-bx),hole=Math.floor(rand()*3)-1;for(let i=-3;i<=3;i++){if(i===hole||i===hole+1)continue;const a=a0+i*.14;shoot(bx,by,Math.cos(a)*230*v,Math.sin(a)*230*v)}}},
  /* 일자탄: 발밑(점프) 또는 머리 높이(숙이기). 조준탄과 함께 나오는 스펠에서는 발밑으로만 */
  lines:{every:1.9,fire(d,bx,by,px,py,v){const low=d.SP.pat.includes('aimed')||rand()<.5;for(let i=0;i<3;i++)shoot(bx+i*26,low?GROUND-18:GROUND-100,-320*v,0)}},
- /* 글자비: 땅에 붉은 표시가 먼저 보인다. 주인공 바로 위에는 덜 떨어지게(한 번 다시 고름) */
- rain:{every:.6,fire(d,bx,by,px,py,v){let x=40+rand()*480;if(Math.abs(x-px)<45)x=40+rand()*480;shoot(x,-20,0,60,420*v,1)}},
- /* 회오리탄: 주인공을 겨누지 않고 위아래로 쓸며 날아온다. 높이를 보고 점프 · 숙이기 · 좌우로 피한다 */
- spiral:{every:.36,fire(d,bx,by,px,py,v){d.ang+=.5;const a=Math.PI+Math.sin(d.ang)*.42;shoot(bx,by,Math.cos(a)*175*v,Math.sin(a)*175*v)}},
+ /* 글자비: 촘촘히 떨어지지만 천천히 옮겨 다니는 빈자리(폭 110)가 하나 있다 */
+ rain:{every:.3,fire(d,bx,by,px,py,v){const lc=PX+80+140*Math.sin(d.t*.7);let x;do{x=40+rand()*560}while(Math.abs(x-lc)<55);shoot(x,-20,0,60,420*v,1)}},
+ /* 회오리탄: 위아래로 쓸며 촘촘히 날아온다. 여섯 발마다 잠깐 쉬는 틈이 있다 */
+ spiral:{every:.16,fire(d,bx,by,px,py,v){d.sp=(d.sp||0)+1;if(d.sp%9>=6)return;d.ang+=.38;const a=Math.PI+Math.sin(d.ang)*.48;shoot(bx,by,Math.cos(a)*185*v,Math.sin(a)*185*v)}},
 };
 function updateDodge(dt){
  const d=G.dodge,e=d.e,B=d.B,sc=1.05;d.t+=dt;
