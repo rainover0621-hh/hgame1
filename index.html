@@ -1076,7 +1076,7 @@ function pickItem(){
 }
 function pickMob(S,l){const c=S.mobs.filter(m=>MOBS[m].lv===l);const p=c.length?c:S.mobs;return p[Math.floor(rand()*p.length)]}
 /* 스테이지별 장애물 난이도: n 개수 범위, sp 장애물 간격, combo 한 번에 넘는 연속 장애물 확률 */
-const DIFF=[{n:[6,7],sp:330,combo:0},{n:[7,8],sp:310,combo:.18},{n:[8,10],sp:282,combos:2},{n:[9,11],sp:264,combos:2},{n:[10,12],sp:250,combos:3}];
+const DIFF=[{n:[6,7],sp:330,combo:0},{n:[7,8],sp:310,combo:.18},{n:[10,12],sp:282,combos:2},{n:[11,13],sp:264,combos:2},{n:[13,16],sp:250,combos:3}];
 const COMBO_OK=['rock','trap','spikes','thorns','puddle'],TRIPLE_OK=['rock','trap'];
 /* 움직이는 장애물은 화면에 들어온 뒤 움직이므로, 계획한 자리에서 만나도록 그만큼 앞에 둔다 */
 function placeObs(t,xm){const v=Math.abs(OBS[t].vx||0);addObs(t,v?xm+v*(W+40-PX)/(280+v):xm)}
