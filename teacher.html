@@ -68,7 +68,7 @@ label.opt small{margin-left:auto;color:var(--muted);font-variant-numeric:tabular
    </div>
    <div class="row" style="align-items:center">
     <label class="note" for="tstage">미리 해 보기 시작 장</label>
-    <select id="tstage" class="btn"><option value="1">1장부터</option><option value="2">2장</option><option value="3">3장</option><option value="4">4장</option><option value="5">5장</option></select>
+    <select id="tstage" class="btn"><option value="1">1장부터</option><option value="2">2장</option><option value="3">3장</option><option value="4">4장</option><option value="5">5장</option><option value="b1">1장 보스만</option><option value="b2">2장 보스만</option><option value="b3">3장 보스만</option><option value="b4">4장 보스만</option><option value="b5">5장 보스만</option></select>
    </div>
    <div class="msg" id="msg" role="status"></div>
   </section>
@@ -101,7 +101,7 @@ function update(){
  if(p.length&&lock)p.push('lock=1');
  const url=GAME+(p.length?'?'+p.join('&'):'');
  $('#url').textContent=url;
- const ts=$('#tstage').value;$('#open').href=ts>1?url+(url.includes('?')?'&':'?')+'stage='+ts:url;
+ const ts=$('#tstage').value,sep=url.includes('?')?'&':'?';$('#open').href=ts[0]==='b'?url+sep+'boss='+ts.slice(1):ts>1?url+sep+'stage='+ts:url;
  $('#qr').innerHTML='';
  if(window.qrcode){const q=qrcode(0,'M');q.addData(url);q.make();
   const cell=12,m=4,size=(q.getModuleCount()+m*2)*cell,cv=document.createElement('canvas');cv.width=cv.height=size;
