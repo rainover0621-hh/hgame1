@@ -1236,7 +1236,7 @@ function bgmUpdate(force){
  bgmFade(ch,BGM[want][1],1);
 }
 /* 효과음 파일: Endless Sky의 퍼블릭 도메인 효과음(CREDITS.md 참고). 불러오지 못하면 아래 합성음으로 대신한다 */
-const SFX_FILES={ok:['strike',.7],defeat:['explode-small',.45],boss:['explode-large',.6],bad:['bite',.8],hit:['crunch',.6],smash:['crunch',.75],item:['pulse',.5],win:['magic',.6]};
+const SFX_FILES={ok:['strike',.7],defeat:['explode-small',.45],boss:['explode-large',.6],bad:['bite',.8],hit:['crunch',.6],smash:['crunch',.75],item:['pulse',.5],win:['magic',.6],meet:['encounter',.6]};
 const BUF={};let sfxLoading=false;
 function loadSfx(){
  if(sfxLoading||!AC)return;sfxLoading=true;
@@ -1263,6 +1263,7 @@ function sfx(n){
  else if(n==='jump2'){tone(620,.12,'sine',.07,1100)}
  else if(n==='slide'){tone(300,.18,'triangle',.06,150)}
  else if(n==='block'){tone(1200,.25,'triangle',.1,600)}
+ else if(n==='meet'){tone(520,.09,'sine',.12,900);setTimeout(()=>tone(900,.16,'sine',.1,1300),70)}
  else if(n==='win'){[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.3,'triangle',.12),i*130))}
 }
 
@@ -1325,7 +1326,7 @@ function interact(){
  const px=G.cam+PX;
  for(const e of G.ents){
   if(e.gone||e.used)continue;
-  if(e.kind==='enemy'&&e.x-px<(e.boss?255:175)){e.used=true;if(e.boss)startDodge(e);else startQuiz(e);return}
+  if(e.kind==='enemy'&&e.x-px<(e.boss?255:175)){e.used=true;sfx('meet');if(e.boss)startDodge(e);else startQuiz(e);return}
   if(e.kind==='item'&&Math.abs(e.x-px)<34){const iy=e.y-GROUND;if(iy>P.y-140&&iy<P.y+30){e.used=true;e.gone=true;collect(e)}}
   if(e.kind==='obs'){
    const O=OBS[e.type];if(O.dyn==='scale'||Math.abs(e.x-px)>=O.w)continue;
