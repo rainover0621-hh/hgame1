@@ -268,6 +268,27 @@ th{color:var(--muted);font-weight:400}
 .pad button:active{background:rgba(233,185,73,.55);transform:scale(.95)}
 .touch .pad,.pad.show{display:flex}
 .arena.panel-on .pad{display:none}
+/* 휴대전화 가로 화면(높이가 낮음): 상태창을 한 줄로 줄여 HP · 점수가 잘리지 않게 */
+@media (max-height:540px) and (orientation:landscape){
+ .game{gap:6px}
+ .hud{flex:none;flex-wrap:nowrap;padding:8px 10px 6px;gap:10px;border-radius:10px}
+ .hud::before{height:3px}
+ .hp{flex:1 1 220px;gap:6px}.lbl{font-size:13px}.bar{height:16px}#hpTxt{font-size:16px;min-width:64px}
+ .mid{flex:0 1 120px;gap:3px}#stName{font-size:12px}.prog{height:6px}
+ .right{flex:none;flex-wrap:nowrap;gap:8px}.score small{font-size:11px}.score b{font-size:22px}#combo{font-size:12px;min-width:0}
+ .inv{font-size:16px;padding:2px 7px;border-radius:7px}.inv b{font-size:13px}
+ #mute,#fsBtn{width:34px;height:30px;font-size:15px;border-radius:7px}
+ /* 문제 · 이야기 창은 무대 위에 겹쳐 띄우고, 글자를 화면 높이에 맞게 줄인다 */
+ .panel{position:absolute;margin:0;top:6px;right:6px;bottom:6px;width:min(64%,600px);padding:10px 12px;backdrop-filter:blur(6px)}
+ .panel:has(.story){width:min(72%,640px)}
+ .quiz .qmeta{font-size:14px;gap:6px}.quiz .lvl{font-size:14px;padding:1px 8px}
+ .quiz .timer{margin:8px 0 4px}.quiz .timer b{font-size:14px;top:8px}
+ .quiz .qtext{font-size:17px;margin-top:10px}.han{font-size:32px;padding:2px 6px;margin:4px 0 6px}.han.long{font-size:23px}
+ .opts{grid-template-columns:1fr 1fr;gap:6px}.opts .opt{font-size:14.5px;padding:6px 8px}
+ .quiz .timer{margin:6px 0 2px}
+ .quiz .boss-line{font-size:14px}.quiz .tools,.quiz .hintbtn{font-size:13px}
+ .quiz .ans,.quiz .exp{font-size:14.5px}.quiz .v{font-size:19px}
+}
 </style>
 </head>
 <body>
@@ -287,7 +308,7 @@ th{color:var(--muted);font-weight:400}
   </header>
   <div class="arena" id="arena">
     <div class="stage" id="stage"><canvas id="cv" aria-label="달리기 무대"></canvas>
-      <div class="pad"><span class="grp"><button id="jumpBtn">점프 ▲</button><button id="slideBtn">숙이기 ▼</button></span><span class="grp"><button class="mv" id="leftBtn" hidden>◀ 왼쪽</button><button class="mv" id="rightBtn" hidden>오른쪽 ▶</button></span></div></div>
+      <div class="pad"><span class="grp"><button class="mv" id="leftBtn" hidden>◀ 왼쪽</button><button class="mv" id="rightBtn" hidden>오른쪽 ▶</button></span><span class="grp"><button id="slideBtn">숙이기 ▼</button><button id="jumpBtn">점프 ▲</button></span></div></div>
     <section class="panel" id="panel" aria-live="polite"></section>
   </div>
 </div>
@@ -1236,7 +1257,7 @@ function bgmUpdate(force){
  bgmFade(ch,BGM[want][1],1);
 }
 /* 효과음 파일: Endless Sky의 퍼블릭 도메인 효과음(CREDITS.md 참고). 불러오지 못하면 아래 합성음으로 대신한다 */
-const SFX_FILES={ok:['strike',.7],defeat:['explode-small',.45],boss:['explode-large',.6],bad:['bite',.8],hit:['crunch',.6],smash:['crunch',.75],item:['pulse',.5],win:['magic',.6],meet:['encounter',.55]};
+const SFX_FILES={ok:['strike',.7],defeat:['explode-small',.45],boss:['explode-large',.6],bad:['bite',.8],hit:['crunch',.6],smash:['crunch',.75],item:['pulse',.5],win:['magic',.6],meet:['encounter',1]};
 const BUF={};let sfxLoading=false;
 function loadSfx(){
  if(sfxLoading||!AC)return;sfxLoading=true;
@@ -1273,6 +1294,9 @@ function showPanel(html){panel.innerHTML=html;panel.hidden=false;panel.scrollTop
 function hidePanel(){panel.hidden=true;panel.innerHTML='';arena.classList.remove('panel-on')}
 function floater(text,col,x=PX,y=GROUND-160,size=26){G.floats.push({text,col,x,y,life:1.3,size})}
 function burst(x,y,col,n,spd=1){for(let i=0;i<n;i++){const a=rand()*Math.PI*2,s=(120+rand()*260)*spd;G.parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-120,r:3+rand()*7,life:.6+rand()*.5,col})}}
+/* 요괴와 만날 때: 효과음 + 화면 흔들림 + 요괴가 부르르 떨고 머리 위에 '!' */
+function meetFx(e){sfx('meet');G.shake=Math.max(G.shake,e.boss?.45:.3);e.meetAt=performance.now();
+ const sx=e.x-G.cam+(e.back||0);floater('!','#ffd84a',sx+(e.boss?0:46),GROUND-(MOBH[e.mob]||140)-(e.boss?24:70),e.boss?54:44)}
 function domShake(){arena.classList.remove('shake');void arena.offsetWidth;arena.classList.add('shake')}
 function heal(n){const before=G.hp;G.hp=Math.min(G.maxHp,G.hp+n);floater(`HP +${G.hp-before}`,'#5fd3a9')}
 function damage(n,fromQuiz){
@@ -1326,7 +1350,7 @@ function interact(){
  const px=G.cam+PX;
  for(const e of G.ents){
   if(e.gone||e.used)continue;
-  if(e.kind==='enemy'&&e.x-px<(e.boss?255:175)){e.used=true;sfx('meet');if(e.boss)startDodge(e);else startQuiz(e);return}
+  if(e.kind==='enemy'&&e.x-px<(e.boss?255:175)){e.used=true;meetFx(e);if(e.boss)startDodge(e);else startQuiz(e);return}
   if(e.kind==='item'&&Math.abs(e.x-px)<34){const iy=e.y-GROUND;if(iy>P.y-140&&iy<P.y+30){e.used=true;e.gone=true;collect(e)}}
   if(e.kind==='obs'){
    const O=OBS[e.type];if(O.dyn==='scale'||Math.abs(e.x-px)>=O.w)continue;
@@ -1944,7 +1968,7 @@ if(matchMedia('(any-pointer:coarse)').matches||navigator.maxTouchPoints>0||'onto
 addEventListener('touchstart',markTouch,{once:true,passive:true});
 /* 무대가 화면 높이에 꽉 차도록 .game 너비를 맞춘다 (가로 태블릿 · 전체 화면) */
 function fitGame(){
- const g=$('.game'),wide=innerWidth>760;
+ const g=$('.game'),wide=innerWidth>760||innerWidth>innerHeight;
  if(!wide){g.style.maxWidth='';return}
  const cs=getComputedStyle(document.body),pb=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
  const avail=innerHeight-pb-$('.hud').offsetHeight-10;
@@ -2942,7 +2966,8 @@ const MOBSPR={};
 function mobSprite(id){const S=MOBSPR[id];if(!S)return null;if(!S.img){S.img=new Image();S.img.src=`assets/mobs/${id}.png`}return S.img.complete&&S.img.naturalWidth?S.img:null}
 const MOBH={wisp:130,toad:100,fox:112,shadow:150,jiangshi:135,imugi:128,bulgasari:122,wasp:120,plant:150,boar:104,goblin:150,golem:140,firebird:150,spider:190,wolf:178,ghost:236,demon:272,dragon:262};
 function drawEnemy(e){
- const sx=e.x-G.cam+(e.back||0);if(sx<-200||sx>W+220)return;
+ const mk=e.meetAt?Math.max(0,1-(performance.now()-e.meetAt)/500):0;
+ const sx=e.x-G.cam+(e.back||0)+Math.sin(mk*42)*10*mk;if(sx<-200||sx>W+220)return;
  const boss=!!e.boss,base=boss?1.05:.9;let a=1,sc=base;
  if(e.dying>0){const k=e.dying/(boss?1:.6);a=k;sc=base*(.4+.6*k)}
  let off=0,lean=0;
