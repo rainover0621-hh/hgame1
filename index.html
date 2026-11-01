@@ -1236,7 +1236,7 @@ function bgmUpdate(force){
  bgmFade(ch,BGM[want][1],1);
 }
 /* 효과음 파일: Endless Sky의 퍼블릭 도메인 효과음(CREDITS.md 참고). 불러오지 못하면 아래 합성음으로 대신한다 */
-const SFX_FILES={ok:['strike',.7],defeat:['explode-small',.45],boss:['explode-large',.6],bad:['bite',.8],hit:['crunch',.6],smash:['crunch',.75],item:['pulse',.5],win:['magic',.6],meet:['encounter',.6]};
+const SFX_FILES={ok:['strike',.7],defeat:['explode-small',.45],boss:['explode-large',.6],bad:['bite',.8],hit:['crunch',.6],smash:['crunch',.75],item:['pulse',.5],win:['magic',.6],meet:['encounter',.55]};
 const BUF={};let sfxLoading=false;
 function loadSfx(){
  if(sfxLoading||!AC)return;sfxLoading=true;

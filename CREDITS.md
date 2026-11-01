@@ -18,6 +18,12 @@ Endless Sky의 `copyright` 파일에 따르면 아래 파일은 모두 **퍼블�
 
 Endless Sky의 코드(GPL-3.0)와 그림(대부분 CC-BY-SA)은 가져오지 않았습니다.
 
+| 게임 파일 | 원본 | 쓰임 |
+|---|---|---|
+| `encounter.mp3` | [Mixkit](https://mixkit.co/free-sound-effects/alerts/) "Long pop" (`mixkit-long-pop-2358.wav`) | 요괴 · 보스와 만날 때 |
+
+`encounter.mp3`는 [Mixkit Sound Effects Free License](https://mixkit.co/license/#sfxFree)에 따라 게임 속 효과음으로 쓰며, mp3(모노, 96kbps)로 변환했습니다. 출처 표시 의무는 없지만 적어 둡니다. 이 파일만 따로 떼어 배포하는 것은 허용되지 않습니다.
+
 ## 초상화 (`assets/portraits/`)
 
 저장소 주인이 제공한 캐릭터·몬스터 콘셉트 이미지에서 주인공(검객·술사·궁수)과 보스(요마·용·귀혼·늑대괴수·거대거미) 칸을 잘라 썼습니다.
