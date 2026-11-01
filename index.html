@@ -932,7 +932,7 @@ const LV={
 };
 const ITEMS={
  yak:{han:'藥',name:'약첩',desc:'HP +10 회복',col:'#3f9a5e',w:40},
- sam:{han:'蔘',name:'산삼',desc:'HP +25 회복',col:'#c98232',w:14},
+ sam:{han:'蔘',name:'산삼',desc:'HP +20 회복',col:'#c98232',w:14},
  bu:{han:'符',name:'부적',desc:'오답 피해 1회 막기',col:'#cf9d1f',w:26},
  pil:{han:'筆',name:'붓',desc:'오답 보기 2개 지우기',col:'#3c64a8',w:20},
 };
@@ -1170,14 +1170,14 @@ function buildStage(i,x0){
   x+=gap;
   const q=pick([lvl]);G.ents.push({kind:'enemy',x,q,lvl:q.l,mob:pickMob(S,q.l)});
  });
- /* 장마다 HP 회복 아이템을 꼭 두 번(약첩 하나 · 산삼 하나) 낸다: 서로 다른 구간의 가운데쯤, 땅 높이 */
+ /* 아이템 자리 후보 두 곳 더: 서로 다른 구간의 가운데쯤(땅 또는 공중). 실제로 무엇을 둘지는 placeItems에서 정한다 */
  {const idx=gaps.map((_,k)=>k);const pickG=()=>idx.splice(Math.floor(rand()*idx.length),1)[0];
   for(const type of ['yak','sam']){const k=idx.length?pickG():0,[gx,gl]=gaps[k]||[x0,900];
    let ix=gx+gl*(.4+rand()*.2);const near=G.ents.filter(e=>e.kind==='obs'&&Math.abs(e.x-ix)<60);if(near.length)ix=near[0].x+(near[0].x<ix?70:-70);
-   G.itemSlots.push({x:ix,air:false})}}
+   G.itemSlots.push({x:ix,air:rand()<.5})}}
  if(S.boss){
   x+=1300;
-  G.itemSlots.push({x:x-820,air:false});
+  G.itemSlots.push({x:x-820,air:rand()<.5});
   addObs('crow',x-500);
   G.itemSlots.push({x:x-380,air:true});
   const B=BOSSES[S.boss];G.ents.push({kind:'enemy',boss:true,x,hp:B.hp,max:B.hp,lvl:4,mob:S.boss,back:0,qlv:B.q});
@@ -1185,23 +1185,14 @@ function buildStage(i,x0){
  placeItems(i);
  G.stDone=0;G.stTotal=S.enemies.length+(S.boss?1:0);
 }
-/* 아이템 배치: 한 장에 모두 ITEM_MAX(5)개 이하.
-   약첩 · 산삼은 각각 1~3개(평균 약 2개), 남는 자리에 부적 · 붓을 하나씩 70% 확률로 넣는다.
-   1장은 첫 구간에 붓이 꼭 나온다. 자리(구간 가운데 · 보스 앞 등)는 무작위로 고른다 */
-const ITEM_MAX=5;
+/* 아이템 배치: 장마다 약첩 2 · 산삼 1 · 붓 1 · 부적 1, 모두 5개로 고정.
+   자리(첫 구간 · 요괴 사이 구간 · 보스 앞, 땅 또는 공중)는 무작위로 고른다. 1장은 첫 구간에 붓을 둔다 */
+const ITEM_SET=['yak','yak','sam','pil','bu'];
 function placeItems(i){
- const slots=G.itemSlots.slice(),n13=()=>{const r=rand();return r<.25?1:r<.75?2:3};
- let yak=n13(),sam=n13();const capHp=i===0?ITEM_MAX-1:ITEM_MAX;
- while(yak+sam>capHp){if(rand()<.5&&yak>1)yak--;else if(sam>1)sam--;else yak--}
- const list=[];
- if(i===0)list.push('pil');
- for(let k=0;k<yak;k++)list.push('yak');for(let k=0;k<sam;k++)list.push('sam');
- while(list.length<ITEM_MAX&&rand()<ITEM_RATE)list.push(rand()<26/46?'bu':'pil');
+ const slots=G.itemSlots.slice(),list=ITEM_SET.slice();
  const put=(type,sl)=>G.ents.push({kind:'item',type,x:sl.x,y:sl.air?GROUND-165:GROUND-28,air:!!sl.air});
- if(i===0){const f=slots.findIndex(s=>s.first);put(list.shift(),slots.splice(f,1)[0])}
- /* 약첩 · 산삼은 되도록 땅 높이 자리에, 부적 · 붓은 남은 자리(공중 포함)에 */
- for(const type of list){if(!slots.length)break;const hp=type==='yak'||type==='sam',pool=slots.map((s,k)=>k).filter(k=>hp?!slots[k].air:true),use=pool.length?pool:slots.map((s,k)=>k);
-  put(type,slots.splice(use[Math.floor(rand()*use.length)],1)[0])}
+ if(i===0){const f=slots.findIndex(s=>s.first);list.splice(list.indexOf('pil'),1);put('pil',slots.splice(f,1)[0])}
+ for(const type of list){if(!slots.length)break;put(type,slots.splice(Math.floor(rand()*slots.length),1)[0])}
 }
 
 /* ───────── 소리 ───────── */
@@ -1397,7 +1388,7 @@ function hitObs(e,O){
 }
 function collect(e){
  const I=ITEMS[e.type],C=CH();sfx('item');burst(e.x-G.cam,e.y,I.col,10);
- if(e.type==='yak')heal(Math.round(10*C.healMul));else if(e.type==='sam')heal(Math.round(25*C.healMul));
+ if(e.type==='yak')heal(Math.round(10*C.healMul));else if(e.type==='sam')heal(Math.round(20*C.healMul));
  else if(e.type==='bu'){G.inv.shield++;floater('부적 획득','#e9b949')}
  else{G.inv.hint++;floater('붓 획득','#8fb0e8')}
 }
@@ -1491,7 +1482,12 @@ function shoot(x,y,vx,vy,ay=0,warn=0){const SP=G.dodge.SP;G.bullets.push({x,y,vx
 /* 탄막 종류: aimed 부채꼴 조준탄 · lines 발밑/머리 높이 일자탄 · rain 글자비 · spiral 회오리탄 */
 const PATS={
  /* 조준탄: 주인공 몸통을 겨눈 7갈래 부채꼴. 가운데 근처 두 갈래가 비어 있어 그 틈으로 비켜 피한다 */
- aimed:{every:1.3,fire(d,bx,by,px,py,v){const a0=Math.atan2(GROUND-60-by,px-bx),hole=Math.floor(rand()*3)-1;for(let i=-3;i<=3;i++){if(i===hole||i===hole+1)continue;const a=a0+i*.14;shoot(bx,by,Math.cos(a)*230*v,Math.sin(a)*230*v)}}},
+ aimed:{every:1.3,fire(d,bx,by,px,py,v){const a0=Math.atan2(GROUND-60-by,px-bx);
+  /* 빈틈은 '그대로 서 있으면 안전' 또는 '숙이면 안전'한 높이에만 낸다(입이 낮은 늑대처럼 거의 수평으로 오는 경우에도 피할 수 있게) */
+  const hy=i=>by+(px+24-bx)*Math.tan(a0+i*.14)-GROUND,hit=(lo,hi,h)=>{for(let i=-3;i<=3;i++){if(i===h||i===h+1)continue;const y=hy(i);if(y>lo&&y<hi)return true}return false};
+  const ok=[];for(let h=-3;h<=2;h++){const stand=!hit(-125*CH().scale-16,20,h),duck=!hit(-60*CH().scale-16,20,h);if(stand||duck)ok.push(h)}
+  const near=ok.filter(h=>h>=-1&&h<=1),pool=near.length?near:ok.length?ok:[-1,0,1],hole=pool[Math.floor(rand()*pool.length)];
+  for(let i=-3;i<=3;i++){if(i===hole||i===hole+1)continue;const a=a0+i*.14;shoot(bx,by,Math.cos(a)*230*v,Math.sin(a)*230*v)}}},
  /* 일자탄: 발밑(점프) 또는 머리 높이(숙이기). 조준탄과 함께 나오는 스펠에서는 발밑으로만 */
  lines:{every:1.9,fire(d,bx,by,px,py,v){const low=d.SP.pat.includes('aimed')||rand()<.5;for(let i=0;i<3;i++)shoot(bx+i*26,low?GROUND-18:GROUND-100,-320*v,0)}},
  /* 글자비: 촘촘히 떨어지지만 천천히 옮겨 다니는 빈자리(폭 110)가 하나 있다 */
@@ -1506,9 +1502,12 @@ function updateDodge(dt){
   const n=d.SP.pat.length;
   const both=d.SP.pat.includes('aimed')&&d.SP.pat.includes('lines');
   for(const p of d.SP.pat){const T=PATS[p];let every=T.every*(n>1&&(p==='rain'||p==='spiral')?(n>=3?1.8:1.4):1)/B.spd;
-   /* 조준탄과 일자탄이 함께면 일자탄은 조준탄 두 번에 한 번, 사이에 끼워 겹치지 않게 */
-   if(both&&p==='lines')every=2*PATS.aimed.every/B.spd;
-   d.timer[p]=(d.timer[p]??(both&&p==='lines'?.2+PATS.aimed.every/B.spd/2:.2))-dt;if(d.timer[p]<=0){d.timer[p]=every;T.fire(d,bx,by,px,py,B.spd)}}
+   /* 조준탄과 일자탄이 함께면 일자탄은 조준탄 두 번에 한 번만 쏜다. 일자탄이 더 빨라서, 주인공에게 '도착하는' 때가
+      조준탄이 지나간 직후가 되도록 맞춰 쏜다(점프로 일자탄을 넘고 내려온 뒤에 다음 조준탄이 오게) */
+   if(both&&p==='lines')continue;
+   d.timer[p]=(d.timer[p]??.2)-dt;if(d.timer[p]<=0){d.timer[p]=every;T.fire(d,bx,by,px,py,B.spd);
+    if(both&&p==='aimed'&&(d.na=(d.na||0)+1)%2===1){const per=every,dist=Math.max(60,bx-px),off=dist/(230*B.spd)-dist/(320*B.spd)+per*.35;d.linesAt=d.t+((off%per)+per)%per}}}
+  if(both&&d.linesAt!=null&&d.t>=d.linesAt){d.linesAt=null;PATS.lines.fire(d,bx,by,px,py,B.spd)}
  }
  const top=GROUND+P.y-heroH()*CH().scale,bot=GROUND+P.y;
  for(const b of G.bullets){
