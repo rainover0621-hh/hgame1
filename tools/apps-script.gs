@@ -10,6 +10,7 @@ const TEACHER_KEY = '여기에-비밀번호';
 const HEADERS = ['보낸 시각', '날짜', '학년', '반', '번호', '이름', '주인공', '점수', '정답', '문제 수', '정답률(%)',
   '도착한 곳', '완주', '최고 콤보', '남은 HP', '출제 범위', '시험 모드', '여정의 선택', '틀린 문제'];
 const TZ = 'Asia/Seoul';
+const VERSION = '2026-11-25b';
 
 function sheet_() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
@@ -38,9 +39,10 @@ function doPost(e) {
   }
 }
 
-// 시트가 '2026-11-25' 같은 글자를 날짜로 바꿔 저장하므로, 읽을 때 다시 'yyyy-MM-dd' 글자로 맞춘다
+// 날짜는 '보낸 시각' 칸(진짜 날짜 값)으로 계산한다. 시트가 글자를 날짜로 바꾸거나 시간대가 달라도 한국 날짜로 맞춘다
 function day_(v) {
-  return v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM-dd') : String(v);
+  const d = v instanceof Date ? v : new Date(v);
+  return isNaN(d) ? String(v) : Utilities.formatDate(d, TZ, 'yyyy-MM-dd');
 }
 
 function rows_() {
@@ -48,7 +50,7 @@ function rows_() {
   const n = sh.getLastRow() - 1;
   if (n <= 0) return [];
   return sh.getRange(2, 1, n, HEADERS.length).getValues().map(r => ({
-    time: Utilities.formatDate(new Date(r[0]), TZ, 'yyyy-MM-dd HH:mm'), date: day_(r[1]),
+    time: Utilities.formatDate(new Date(r[0]), TZ, 'yyyy-MM-dd HH:mm'), date: day_(r[0]),
     grade: String(r[2]), cls: String(r[3]), no: String(r[4]), name: String(r[5]), char: String(r[6]),
     score: Number(r[7]) || 0, correct: Number(r[8]) || 0, total: Number(r[9]) || 0, acc: Number(r[10]) || 0,
     stage: String(r[11]), won: r[12] === 'O', combo: Number(r[13]) || 0, hp: Number(r[14]) || 0,
@@ -60,10 +62,16 @@ function json_(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
 }
 
+// ?action=ping        점검용: 코드 버전과 기록 수(이름 등 개인 정보 없음)
 // ?action=today       오늘의 순위 (이름 가운데는 가림, 시험 모드 제외)
 // ?action=all&key=…   교사용 전체 기록
 function doGet(e) {
   const p = (e && e.parameter) || {};
+  if (p.action === 'ping') {
+    const all = rows_(), today = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
+    return json_({ ok: true, version: VERSION, rows: all.length, today: all.filter(r => r.date === today).length,
+      lastDate: all.length ? all[all.length - 1].date : '' });
+  }
   if (p.action === 'today') {
     const today = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
     const mask = n => n.length <= 1 ? n : n.length === 2 ? n[0] + '○' : n[0] + '○'.repeat(n.length - 2) + n[n.length - 1];
