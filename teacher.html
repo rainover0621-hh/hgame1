@@ -132,7 +132,7 @@ function update(){
  const p=[];
  if(!allU)p.push('u='+u.map(encodeURIComponent).join(','));
  if(!allC)p.push('c='+c.join(','));
- if(p.length&&lock)p.push('lock=1');
+ if(!lock)p.push('lock=0');
  const url=GAME+(p.length?'?'+p.join('&'):'');
  $('#url').textContent=url;
  const ts=$('#tstage').value,sep=url.includes('?')?'&':'?';$('#open').href=ts[0]==='b'?url+sep+'boss='+ts.slice(1):ts>1?url+sep+'stage='+ts:url;

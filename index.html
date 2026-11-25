@@ -930,7 +930,8 @@ const TEXTBOOK=[
 const BANK=TEXTBOOK.map(([u,c,l,q,h,o,e,t],id)=>({id,u,c,l,q,h,o,e,t}));
 const UNIT_NAME=Object.fromEntries(UNITS);
 const CATS=['한자','한자어휘','한자성어','고사성어','문장풀이','기타'];
-/* 교사가 배포 링크에 범위를 넣으면 그대로 쓴다: ?u=1,2,자전&c=0,2&lock=1 (c는 CATS 순서 번호) */
+/* 교사가 배포 링크에 범위를 넣으면 그대로 쓴다: ?u=1,2,자전&c=0,2 (c는 CATS 순서 번호)
+   출제 범위는 기본으로 고정(학생이 못 바꿈). 범위를 주지 않으면 전체 단원 · 전체 유형. ?lock=0 이면 학생이 직접 고를 수 있다 */
 const URLSET=(()=>{
  let p;try{p=new URLSearchParams(location.search)}catch(e){p=new URLSearchParams('')}
  const ids=UNITS.map(u=>u[0]);
@@ -941,7 +942,7 @@ const URLSET=(()=>{
  /* 시험용: ?boss=4 면 4장 보스전만 바로 한다 */
  const bs=parseInt(p.get('boss'),10);const boss=bs>=1&&bs<=5?bs-1:-1;
  /* 시험용: ?perks=1 이면 검토 중인 캐릭터 능력(술사 회복 · 궁수 회피 · 검객 불굴)을 켠다 */
- return {u,c,lock:p.get('lock')==='1'&&(u.length>0||c.length>0),stage:boss>=0?boss:st-1,boss,perks:p.get('perks')==='1'};
+ return {u,c,lock:p.get('lock')!=='0',stage:boss>=0?boss:st-1,boss,perks:p.get('perks')==='1'};
 })();
 
 /* ───────── 규칙 ───────── */
@@ -1056,7 +1057,7 @@ const CH=()=>CHARS[G.char];
 loadSeen();
 function loadUnits(){
  if(URLSET.u.length)return new Set(URLSET.u);
- const ids=UNITS.map(u=>u[0]);let v=null;try{v=JSON.parse(store.get('hanmun-units'))}catch(e){}
+ const ids=UNITS.map(u=>u[0]);if(URLSET.lock)return new Set(ids);let v=null;try{v=JSON.parse(store.get('hanmun-units'))}catch(e){}
  const set=new Set(Array.isArray(v)?v.filter(x=>ids.includes(x)):ids);
  return set.size?set:new Set(ids);
 }
@@ -1867,7 +1868,7 @@ function setUnits(all){
 function rangeUI(){
  panel.querySelectorAll('[data-act="unit"]').forEach(x=>x.setAttribute('aria-pressed',G.units.has(x.dataset.u)));
  const n=$('#rangeN');if(n)n.textContent=rangeCount();
- if(!URLSET.u.length)store.set('hanmun-units',JSON.stringify([...G.units]));
+ if(!URLSET.u.length&&!URLSET.lock)store.set('hanmun-units',JSON.stringify([...G.units]));
 }
 function showResult(){
  recordResult();
