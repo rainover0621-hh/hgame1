@@ -38,12 +38,17 @@ function doPost(e) {
   }
 }
 
+// 시트가 '2026-11-25' 같은 글자를 날짜로 바꿔 저장하므로, 읽을 때 다시 'yyyy-MM-dd' 글자로 맞춘다
+function day_(v) {
+  return v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM-dd') : String(v);
+}
+
 function rows_() {
   const sh = sheet_();
   const n = sh.getLastRow() - 1;
   if (n <= 0) return [];
   return sh.getRange(2, 1, n, HEADERS.length).getValues().map(r => ({
-    time: Utilities.formatDate(new Date(r[0]), TZ, 'yyyy-MM-dd HH:mm'), date: String(r[1]),
+    time: Utilities.formatDate(new Date(r[0]), TZ, 'yyyy-MM-dd HH:mm'), date: day_(r[1]),
     grade: String(r[2]), cls: String(r[3]), no: String(r[4]), name: String(r[5]), char: String(r[6]),
     score: Number(r[7]) || 0, correct: Number(r[8]) || 0, total: Number(r[9]) || 0, acc: Number(r[10]) || 0,
     stage: String(r[11]), won: r[12] === 'O', combo: Number(r[13]) || 0, hp: Number(r[14]) || 0,
