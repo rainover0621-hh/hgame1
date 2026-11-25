@@ -1620,7 +1620,6 @@ function recordResult(){
   .catch(()=>{G.sendMsg='기록을 보내지 못했어요. 인터넷 연결을 확인해 주세요. (이 기기에는 남았어요)';const m=$('#rMsg');if(m)m.textContent=G.sendMsg});
 }
 /* 오늘의 순위: 학생마다 오늘 최고 점수 한 줄 */
-const maskName=n=>{n=String(n||'');return n.length<=1?n:n.length===2?n[0]+'○':n[0]+'○'.repeat(n.length-2)+n[n.length-1]};
 let rankBack=null;
 function showRanking(back){
  rankBack=back;
@@ -1644,7 +1643,7 @@ function showRanking(back){
   const list=Object.values(best).sort((a,b)=>b.score-a.score).slice(0,30);
   const me=`${STU.grade}-${STU.cls}-${STU.no}`;
   $('#rankBody').innerHTML=list.length?`<table class="ranktbl"><thead><tr><th>순위</th><th>학생</th><th>주인공</th><th>점수</th><th>정답률</th><th>도착</th></tr></thead><tbody>
-   ${list.map((r,i)=>`<tr class="${`${r.grade}-${r.cls}-${r.no}`===me?'me':''}"><td>${i+1}</td><td>${esc(r.grade)}-${esc(r.cls)} ${esc(maskName(r.name))}</td><td>${esc(String(r.char||'').split(' ').pop())}</td><td><b>${+r.score||0}</b></td><td>${+r.acc||0}%</td><td>${r.won===true||r.won==='O'?'완주':esc(String(r.stage||'').split(' ')[0])}</td></tr>`).join('')}</tbody></table>`
+   ${list.map((r,i)=>`<tr class="${`${r.grade}-${r.cls}-${r.no}`===me?'me':''}"><td>${i+1}</td><td>${esc(r.grade)}-${esc(r.cls)} ${esc(r.name)}</td><td>${esc(String(r.char||'').split(' ').pop())}</td><td><b>${+r.score||0}</b></td><td>${+r.acc||0}%</td><td>${r.won===true||r.won==='O'?'완주':esc(String(r.stage||'').split(' ')[0])}</td></tr>`).join('')}</tbody></table>`
    :'<p class="empty">아직 오늘 기록이 없다. 첫 기록을 남겨 보자!</p>';
   const lab=view==='all'?'모든 반':view[0]==='g'?`${view.slice(1)}학년 전체`:`${view.replace('-','학년 ')}반`;
   $('#rankNote').textContent=(SRC?SRC+' · ':'')+lab;

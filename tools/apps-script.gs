@@ -17,7 +17,7 @@
 // 교사 기록 보기에 쓸 비밀번호. 학생에게 알려 주지 말고 꼭 바꿔서 쓴다.
 const TEACHER_KEY = '여기에-비밀번호';
 
-const VERSION = '2026-11-25c';
+const VERSION = '2026-11-25d';
 const TZ = 'Asia/Seoul';
 
 const LOG = '기록', WRONG = '오답', SUM = '요약', TOP = '많이 틀린 문제', ROSTER = '명렬';
@@ -171,7 +171,7 @@ function json_(o) {
 }
 
 // ?action=ping        점검용: 코드 버전과 기록 수(이름 등 개인 정보 없음)
-// ?action=today       오늘의 순위 (이름 가운데는 가림, 시험 모드 제외)
+// ?action=today       오늘의 순위 (시험 모드 제외)
 // ?action=all&key=…   교사용 전체 기록
 function doGet(e) {
   const p = (e && e.parameter) || {};
@@ -182,9 +182,8 @@ function doGet(e) {
   }
   if (p.action === 'today') {
     const today = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
-    const mask = n => n.length <= 1 ? n : n.length === 2 ? n[0] + '○' : n[0] + '○'.repeat(n.length - 2) + n[n.length - 1];
     const rows = rows_().filter(r => r.date === today && !r.test)
-      .map(r => ({ grade: r.grade, cls: r.cls, no: r.no, name: mask(r.name), char: r.char, score: r.score, acc: r.acc, stage: r.stage, won: r.won }));
+      .map(r => ({ grade: r.grade, cls: r.cls, no: r.no, name: r.name, char: r.char, score: r.score, acc: r.acc, stage: r.stage, won: r.won }));
     return json_({ ok: true, date: today, rows: rows });
   }
   if (p.action === 'all') {
