@@ -3,5 +3,5 @@
    '오늘의 순위'가 반 전체 기록으로 나온다. 만드는 방법은 docs/결과수집.md 참고.
    비워 두면 기록은 학생 기기에만 남는다. */
 window.HANMUN_CONFIG = {
-  resultUrl: ''
+  resultUrl: 'https://script.google.com/macros/s/AKfycbyaF77_3MJ7s6Etf_DGq2otdY3faREfe0V62GqUNyRZgHV1IB6lCVSb1K5TTPd5wWH-Vw/exec'
 };
