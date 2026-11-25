@@ -268,13 +268,23 @@ th{color:var(--muted);font-weight:400}
 .pad button:active{background:rgba(233,185,73,.55);transform:scale(.95)}
 .touch .pad,.pad.show{display:flex}
 .arena.panel-on .pad{display:none}
+/* 가로 태블릿 중간 크기(예: 1024×768): 상태창이 여러 줄로 늘어나지 않게 한 줄로 */
+@media (orientation:landscape) and (min-height:541px) and (max-width:1180px){
+ .hud{flex-wrap:nowrap;padding:12px 16px;gap:14px}
+ .hp{flex:1 1 220px;gap:8px}.lbl{font-size:15px}.bar{height:22px}#hpTxt{font-size:19px;min-width:78px}
+ .mid{flex:0 1 170px}#stName{font-size:14px}
+ .right{flex:none;flex-wrap:nowrap;gap:10px}.score small{font-size:13px}.score b{font-size:28px}#combo{font-size:14px;min-width:0}
+ .inv{font-size:20px;padding:3px 9px}.inv b{font-size:16px}
+ #mute,#fsBtn{width:44px;height:42px;font-size:18px}
+}
 /* 휴대전화 가로 화면(높이가 낮음): 상태창을 한 줄로 줄여 HP · 점수가 잘리지 않게 */
 @media (max-height:540px) and (orientation:landscape){
  .game{gap:6px}
  .hud{flex:none;flex-wrap:nowrap;padding:8px 10px 6px;gap:10px;border-radius:10px}
  .hud::before{height:3px}
  .hp{flex:1 1 220px;gap:6px}.lbl{font-size:13px}.bar{height:16px}#hpTxt{font-size:16px;min-width:64px}
- .mid{flex:0 1 120px;gap:3px}#stName{font-size:12px}.prog{height:6px}
+ .mid{flex:0 1 120px;gap:3px}
+ @media (max-width:720px){.mid{display:none}}#stName{font-size:12px}.prog{height:6px}
  .right{flex:none;flex-wrap:nowrap;gap:8px}.score small{font-size:11px}.score b{font-size:22px}#combo{font-size:12px;min-width:0}
  .inv{font-size:16px;padding:2px 7px;border-radius:7px}.inv b{font-size:13px}
  #mute,#fsBtn{width:34px;height:30px;font-size:15px;border-radius:7px}
@@ -1293,6 +1303,19 @@ function sfx(n){
 const panel=$('#panel'),arena=$('#arena');
 function showPanel(html){panel.innerHTML=html;panel.hidden=false;panel.scrollTop=0;arena.classList.add('panel-on')}
 function hidePanel(){panel.hidden=true;panel.innerHTML='';arena.classList.remove('panel-on')}
+/* 창(문제 · 이야기 · 제목 · 결과) 내용이 넘치면 글자와 칸을 함께 줄여 한 화면에 들어가게 한다(태블릿 최소 70%, 휴대전화 최소 80%: 글자가 너무 작아지지 않게). 그래도 넘치면 스크롤 */
+let fitBusy=false;
+function fitPanel(){
+ if(fitBusy||panel.hidden)return;fitBusy=true;
+ const kids=[...panel.children];kids.forEach(k=>k.style.zoom='');
+ for(let i=0;i<6;i++){
+  const ch=panel.clientHeight,sh=panel.scrollHeight;if(sh<=ch+2)break;
+  const cur=parseFloat(kids[0]&&kids[0].style.zoom)||1,z=Math.max(innerHeight<541?.8:.7,Math.min(1,cur*(ch-2)/sh));
+  if(Math.abs(z-cur)<.005)break;kids.forEach(k=>k.style.zoom=z);
+ }
+ fitBusy=false;
+}
+new MutationObserver(()=>requestAnimationFrame(fitPanel)).observe(panel,{childList:true,subtree:true,characterData:true});
 function floater(text,col,x=PX,y=GROUND-160,size=26){G.floats.push({text,col,x,y,life:1.3,size})}
 function burst(x,y,col,n,spd=1){for(let i=0;i<n;i++){const a=rand()*Math.PI*2,s=(120+rand()*260)*spd;G.parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-120,r:3+rand()*7,life:.6+rand()*.5,col})}}
 /* 요괴와 만날 때: 효과음 + 화면 흔들림 + 요괴가 부르르 떨고 머리 위에 '!' */
@@ -1989,7 +2012,7 @@ function goFull(){
 }
 function toggleFull(){if(fsEl()){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}else goFull()}
 {const el=document.documentElement;if(el.requestFullscreen||el.webkitRequestFullscreen){const b=$('#fsBtn');b.hidden=false;b.addEventListener('click',()=>{initAudio();toggleFull()})}}
-['resize','orientationchange','fullscreenchange','webkitfullscreenchange'].forEach(t=>addEventListener(t,()=>requestAnimationFrame(fitGame)));
+['resize','orientationchange','fullscreenchange','webkitfullscreenchange'].forEach(t=>addEventListener(t,()=>requestAnimationFrame(()=>{fitGame();requestAnimationFrame(fitPanel)})));
 document.addEventListener('fullscreenchange',()=>$('#fsBtn').textContent=fsEl()?'⤡':'⛶');
 fitGame();
 let QUAL=1,LOWFX=false;
