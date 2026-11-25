@@ -1328,7 +1328,7 @@ function start(){
  if(G.state==='title'&&!rangeCount()){domShake();const n=$('#rangeN');if(n)n.textContent='0 (단원을 골라 주세요) ';return}
  initAudio();const C=CH();
  Object.assign(G,{state:'run',stage:0,hp:C.hp,maxHp:C.hp,score:0,combo:0,maxCombo:0,correct:0,total:0,wrong:[],inv:{shield:C.shields,hint:C.hints},
-  ents:[],parts:[],floats:[],bullets:[],dodge:null,cur:null,fade:.8,banner:null,mod:{dmg:1,time:0,score:1},journey:[],won:false,sent:false,sendMsg:''});
+  ents:[],parts:[],floats:[],bullets:[],dodge:null,cur:null,fade:.8,banner:null,mod:{dmg:1,time:0,score:1},journey:[],won:false,sent:false,sendMsg:'',kills:0,t0:Date.now()});
  Object.assign(P,{y:0,vy:0,onGround:true,jumps:0,attack:0,hurt:0,knock:0,shieldFx:0,slide:0,dx:0,inv:0});setMovePad(false);
  if(URLSET.boss>=0){
   const S=STAGES[URLSET.boss];G.stage=URLSET.boss;G.journey.push(`시험 모드 · ${S.num} 보스만`);
@@ -1459,7 +1459,7 @@ function answer(i){
   c.fast=Math.round(L.pts*TIME_BONUS*frac);
   c.gain=Math.round((L.pts+bonus+c.fast)*C.scoreMul*G.mod.score);G.score+=c.gain;
   P.attack=.45;P.happy=1.4;sfx('ok');setTimeout(()=>{G.hitstop=.09;G.zoom=1.06},140);
-  if(e.boss){e.hp--;e.hit=.5;if(e.hp<=0)e.dying=1}else e.dying=.6;
+  if(e.boss){e.hp--;e.hit=.5;if(e.hp<=0){e.dying=1;G.kills++}}else{e.dying=.6;G.kills++}
   setTimeout(()=>{burst(e.x-G.cam,GROUND-(e.boss?80:50),'#141218',e.boss?40:24);sfx(e.boss&&e.hp<=0?'boss':'defeat')},120);
   floater(`+${c.gain}`,'#e9b949',e.x-G.cam,GROUND-(e.boss?230:150),34);
  }else{
@@ -1575,12 +1575,18 @@ function readStu(){
 const isTest=()=>URLSET.stage>0||URLSET.boss>=0;
 function localRecords(){try{return JSON.parse(store.get('hanmun-records'))||[]}catch(e){return []}}
 const dayKey=t=>{const d=new Date(t);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+/* 선생님 시트용: 출제 범위 이름, 틀린 문제 한 줄 ('[6과] 이 성어의 뜻은? — 吾鼻三尺 (정답: …)') */
+const unitTag=u=>u==='자전'?'부수와 자전':`${u}과`;
+const unitNames=()=>UNITS.filter(([id])=>G.units.has(id)).map(([id])=>unitTag(id)).join(', ');
+const wrongLine=q=>`[${unitTag(q.u)}] ${q.q}${q.h?` — ${String(q.h).replace(/\n/g,' ')}`:''} (정답: ${q.o[0]})`;
 function recordResult(){
  if(G.sent)return;G.sent=true;
  const C=CH(),won=!!(G.won||G.state==='win');
  const rec={t:Date.now(),grade:STU.grade,cls:STU.cls,no:STU.no,name:STU.name,char:`${C.role} ${C.name}`,score:G.score,correct:G.correct,total:G.total,
   acc:G.total?Math.round(G.correct/G.total*100):0,stage:`${STAGES[G.stage].num} ${STAGES[G.stage].name}`,won,combo:G.maxCombo,hp:G.hp,
-  journey:G.journey.join(' / '),units:[...G.units].join(','),wrong:G.wrong.map(q=>q.h||q.q).join(' / '),test:isTest()};
+  journey:G.journey.join(' / '),units:unitNames(),wrong:G.wrong.map(q=>q.h||q.q).join(' / '),wrongList:G.wrong.map(wrongLine),
+  kills:G.kills||0,secs:Math.round((Date.now()-(G.t0||Date.now()))/1000),test:isTest()};
+ rec.stage+=` · ${Math.min(G.stDone||0,G.stTotal||0)}/${G.stTotal||0}`;
  const recs=localRecords();recs.push(rec);store.set('hanmun-records',JSON.stringify(recs.slice(-200)));
  if(!RESULT_URL){G.sendMsg='이 기기에 기록했어요.';return}
  G.sendMsg='선생님께 기록을 보내는 중…';

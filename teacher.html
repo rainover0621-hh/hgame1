@@ -191,7 +191,7 @@ $('#copy').addEventListener('click',()=>{
    data=Object.values(by).map(s=>({...s,avgAcc:Math.round(s.accSum/s.plays)}));
    cols=[['grade','학년'],['cls','반'],['no','번호'],['name','이름'],['best','최고 점수'],['bestChar','그때 주인공'],['plays','판 수'],['clears','완주'],['avgAcc','평균 정답률(%)'],['last','마지막 플레이']];
   }else{
-   data=rows;cols=[['time','시각'],['grade','학년'],['cls','반'],['no','번호'],['name','이름'],['char','주인공'],['score','점수'],['acc','정답률(%)'],['stage','도착한 곳'],['won','완주'],['wrong','틀린 문제']];
+   data=rows;cols=[['time','시각'],['grade','학년'],['cls','반'],['no','번호'],['name','이름'],['char','주인공'],['score','점수'],['acc','정답률(%)'],['stage','도착한 곳'],['result','결과'],['kills','물리친 적'],['secs','플레이(초)'],['wrong','틀린 문제']];
   }
   if(!cols.some(c=>c[0]===sortKey)){sortKey=view==='sum'?'best':'score';sortDir=-1}
   data.sort((a,b)=>{const x=a[sortKey],y=b[sortKey];return (x>y?1:x<y?-1:0)*sortDir||((+a.no||0)-(+b.no||0))});
