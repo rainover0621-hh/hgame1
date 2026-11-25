@@ -232,6 +232,7 @@ th{color:var(--muted);font-weight:400}
 .stu .nm input{width:150px}
 .stu select:focus,.stu input:focus{outline:2px solid var(--gold)}
 .ranktbl{width:100%;font-size:16px}
+.rankf{margin:4px 0 10px}.rankf .chip{cursor:pointer}
 .entry .stu{margin-top:4px}
 .entry .stu select,.entry .stu input{font-size:20px;padding:11px 12px;width:88px}
 .entry .stu .nm input{width:180px}
@@ -1625,20 +1626,32 @@ function showRanking(back){
  rankBack=back;
  showPanel(`<div class="rank"><p class="eyebrow">${dayKey(Date.now())}</p><h1 style="font-size:46px">오늘의 순위</h1>
   <p class="keys" id="rankNote">${RESULT_URL?'반 전체 기록을 불러오는 중…':'이 기기에서 한 오늘 기록이다. 선생님이 기록 모으기를 켜면 반 전체 순위가 나온다.'}</p>
+  <div class="chips rankf" id="rankF"></div>
   <div id="rankBody"></div>
   <div class="row" style="margin-top:14px"><button class="go" data-act="rankback">돌아가기</button></div></div>`);
- const draw=(rows,src)=>{
+ /* 반별 보기: 기본은 우리 반. 학년 전체 · 다른 반도 고를 수 있다 */
+ let ALL=[],SRC='',view=STU.grade&&STU.cls?`${STU.grade}-${STU.cls}`:'all';
+ const draw=(rows,src)=>{ALL=rows;SRC=src||'';
+  const cls=[...new Set(rows.filter(r=>!r.test).map(r=>`${r.grade}-${r.cls}`))].sort((a,b)=>{const[x1,y1]=a.split('-').map(Number),[x2,y2]=b.split('-').map(Number);return x1-x2||y1-y2});
+  const mine=STU.grade&&STU.cls?`${STU.grade}-${STU.cls}`:null;if(mine&&!cls.includes(mine))cls.unshift(mine);
+  const grades=[...new Set(cls.map(c=>c.split('-')[0]))];
+  const btn=(v,t)=>`<button class="chip" data-rv="${v}" aria-pressed="${view===v}">${t}</button>`;
+  $('#rankF').innerHTML=(mine?btn(mine,'우리 반'):'')+grades.map(g=>btn('g'+g,`${g}학년 전체`)).join('')+(grades.length>1?btn('all','모두'):'')+cls.filter(c=>c!==mine).map(c=>btn(c,`${c.replace('-','학년 ')}반`)).join('');
+  $('#rankF').querySelectorAll('[data-rv]').forEach(b=>b.onclick=()=>{view=b.dataset.rv;draw(ALL,SRC)});
+  const pick=r=>view==='all'||(view[0]==='g'?String(r.grade)===view.slice(1):`${r.grade}-${r.cls}`===view);
+  rows=rows.filter(pick);
   const best={};for(const r of rows){if(r.test)continue;const k=`${r.grade}-${r.cls}-${r.no}`;if(!best[k]||+r.score>+best[k].score)best[k]=r}
   const list=Object.values(best).sort((a,b)=>b.score-a.score).slice(0,30);
   const me=`${STU.grade}-${STU.cls}-${STU.no}`;
   $('#rankBody').innerHTML=list.length?`<table class="ranktbl"><thead><tr><th>순위</th><th>학생</th><th>주인공</th><th>점수</th><th>정답률</th><th>도착</th></tr></thead><tbody>
    ${list.map((r,i)=>`<tr class="${`${r.grade}-${r.cls}-${r.no}`===me?'me':''}"><td>${i+1}</td><td>${esc(r.grade)}-${esc(r.cls)} ${esc(maskName(r.name))}</td><td>${esc(String(r.char||'').split(' ').pop())}</td><td><b>${+r.score||0}</b></td><td>${+r.acc||0}%</td><td>${r.won===true||r.won==='O'?'완주':esc(String(r.stage||'').split(' ')[0])}</td></tr>`).join('')}</tbody></table>`
    :'<p class="empty">아직 오늘 기록이 없다. 첫 기록을 남겨 보자!</p>';
-  if(src)$('#rankNote').textContent=src;
+  const lab=view==='all'?'모든 반':view[0]==='g'?`${view.slice(1)}학년 전체`:`${view.replace('-','학년 ')}반`;
+  $('#rankNote').textContent=(SRC?SRC+' · ':'')+lab;
  };
  const local=localRecords().filter(r=>dayKey(r.t)===dayKey(Date.now()));
  if(!RESULT_URL){draw(local);return}
- fetch(RESULT_URL+'?action=today').then(r=>r.json()).then(d=>draw(d.rows||[],`반 전체 기록 · 학생마다 오늘 최고 점수 (${(d.rows||[]).length}판)`))
+ fetch(RESULT_URL+'?action=today').then(r=>r.json()).then(d=>draw(d.rows||[],'학생마다 오늘 최고 점수'))
   .catch(()=>draw(local,'반 전체 기록을 불러오지 못해 이 기기 기록만 보여 준다.'));
 }
 /* ───────── 이야기: 학생이 과거로 환생해 한문으로 요괴를 물리친다 ───────── */
