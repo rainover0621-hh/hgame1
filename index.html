@@ -317,12 +317,12 @@ th{color:var(--muted);font-weight:400}
 @media (orientation:landscape) and (max-height:540px){.pv-wrap{aspect-ratio:1/1}.pv-wrap canvas{width:40%}.panel:has(.chars) h1{font-size:28px}
  .chars{grid-template-columns:repeat(3,minmax(0,1fr))}.char{grid-template-columns:minmax(0,1fr);align-items:start}}
 /* 주인공 고르기 화면: 상단 상태창까지 덮는 큰 창으로 띄운다 */
-.panel:has(.chars){position:fixed;inset:0;width:auto!important;max-width:none;margin:0;z-index:20;border-radius:14px;padding:22px 26px;background:rgba(21,20,27,.96)}
+.panel:has(.chars){position:fixed;top:0;bottom:0;left:0;right:0;width:70%!important;max-width:none;margin:0 auto;z-index:20;border-radius:14px;padding:22px 26px;background:rgba(21,20,27,.96)}
 .panel:has(.chars) .chars{gap:14px}
 .panel:has(.chars) .pv-wrap{aspect-ratio:auto;height:clamp(150px,40vh,400px)}.panel:has(.chars) .pv-wrap img{object-position:50% 8%}
 .panel:has(.chars) .pv-wrap canvas{width:auto;height:62%}
 .panel:has(.chars) .tbar{margin:10px -26px 0;padding:8px 26px 10px;bottom:-22px}
-@media (orientation:landscape) and (max-height:540px){.panel:has(.chars){padding:10px 14px}.panel:has(.chars) .tbar{margin:6px -14px 0;padding:6px 14px 8px;bottom:-10px}}
+@media (orientation:landscape) and (max-height:540px){.panel:has(.chars){padding:10px 14px;width:88%!important}.panel:has(.chars) .tbar{margin:6px -14px 0;padding:6px 14px 8px;bottom:-10px}}
 </style>
 </head>
 <body>
