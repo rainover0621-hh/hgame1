@@ -223,6 +223,8 @@ th{color:var(--muted);font-weight:400}
 .story .qtext{font-size:24px}
 .story .exp{font-size:18.5px}
 @container (min-width:760px){.panel:has(.story){width:min(64%,760px);padding:24px}}
+/* 주인공 고르기 화면: 창을 넓혀 카드 글씨가 덜 줄바꿈되게, 가로 화면에서는 원화를 낮게 */
+@container (min-width:760px){.panel:has(.chars){width:min(72%,900px)}}
 .journey{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13px}
 .journey li{background:var(--ink-3);border-radius:8px;padding:8px 10px}
 .send{display:flex;flex-wrap:wrap;gap:8px}
@@ -237,6 +239,10 @@ th{color:var(--muted);font-weight:400}
 .entry .stu select,.entry .stu input{font-size:20px;padding:11px 12px;width:88px}
 .entry .stu .nm input{width:180px}
 .who-line{margin:14px 0 0;font-size:16px;color:var(--paper)}
+/* 주인공 고르기 화면: 학생 정보 · 원정 떠나기 · 오늘의 순위는 창 아래쪽에 늘 보이게 붙인다 (카드만 스크롤) */
+.tbar{position:sticky;bottom:-18px;z-index:3;margin:10px -18px 0;padding:8px 18px 10px;background:rgba(21,20,27,.97);border-top:1px solid var(--line);box-shadow:0 -10px 18px rgba(0,0,0,.35)}
+.tbar .who-line{margin:0;font-size:14px}
+.tbar .row{margin-top:6px!important;gap:8px}.tbar .go,.tbar .ghost{font-size:15px;padding:7px 16px;min-height:0}.tbar .best{font-size:12px}
 .linkbtn{background:none;border:0;color:var(--gold);text-decoration:underline;font-size:14px;margin-left:6px;cursor:pointer}
 .ranktbl td,.ranktbl th{padding:7px 6px;text-align:left}
 .ranktbl td:first-child{font-weight:700;color:var(--gold);width:3em}
@@ -249,17 +255,18 @@ th{color:var(--muted);font-weight:400}
 .char{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;align-content:start;text-align:left;padding:8px;border-radius:12px;border:1px solid var(--line);background:var(--ink-3);transition:transform .12s,border-color .12s}
 .char:hover{transform:translateY(-2px);border-color:var(--muted)}
 .char[aria-pressed="true"]{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold);background:#2d2a27}
-.pv-wrap{position:relative;display:block;aspect-ratio:4/5;border-radius:8px;overflow:hidden;background:var(--ink)}
+.pv-wrap{position:relative;display:block;aspect-ratio:1/1;border-radius:8px;overflow:hidden;background:var(--ink)}
 .pv-wrap img{width:100%;height:100%;object-fit:cover;object-position:50% 10%;display:block}
 .pv-wrap canvas{position:absolute;right:0;bottom:0;width:48%;height:auto;aspect-ratio:1}
 .char .info{min-width:0;display:flex;flex-direction:column;gap:3px}
-.char b{font-size:15px}
-.role{font-size:11px;letter-spacing:.06em;color:var(--gold)}
+.char b{font-size:20px}
+.role{font-size:14px;letter-spacing:.02em;color:var(--gold);line-height:1.4}
 .char[aria-pressed="true"] .role::after{content:" · 선택됨"}
-.stat{display:grid;grid-template-columns:2.4em minmax(0,1fr);align-items:center;gap:4px;font-size:11px;color:var(--muted)}
-.stat span{height:5px;background:var(--ink);border-radius:9px;overflow:hidden}
+.stat{display:grid;grid-template-columns:2.6em minmax(0,1fr);align-items:center;gap:6px;font-size:14px;color:var(--muted)}
+.stat span{height:7px;background:var(--ink);border-radius:9px;overflow:hidden}
 .stat i{display:block;height:100%;border-radius:9px}
-.abil{margin:2px 0 0;padding-left:14px;font-size:11.5px;line-height:1.45}
+.abil{margin:4px 0 0;padding-left:18px;font-size:15px;line-height:1.5;color:var(--text)}
+.abil li{margin-bottom:2px}
 @container (max-width:520px){.chars{grid-template-columns:1fr}.char{grid-template-columns:104px minmax(0,1fr);column-gap:10px;align-items:center}}
 
 .pad{display:none;position:absolute;left:2%;right:2%;bottom:3%;justify-content:space-between;gap:10px;pointer-events:none;z-index:2}
@@ -296,10 +303,26 @@ th{color:var(--muted);font-weight:400}
  .quiz .timer{margin:8px 0 4px}.quiz .timer b{font-size:14px;top:8px}
  .quiz .qtext{font-size:17px;margin-top:10px}.han{font-size:32px;padding:2px 6px;margin:4px 0 6px}.han.long{font-size:23px}
  .opts{grid-template-columns:1fr 1fr;gap:6px}.opts .opt{font-size:14.5px;padding:6px 8px}
+ .char b{font-size:16px}.role{font-size:12px}.stat{font-size:12px}.abil{font-size:13px;line-height:1.45}
+ .tbar{bottom:-10px;margin:8px -12px 0;padding:6px 12px 8px}.tbar .row{margin-top:4px!important}.tbar .go,.tbar .ghost{font-size:13px;padding:5px 12px}.tbar .who-line{font-size:12.5px}
+ .panel:has(.chars) .lede{display:none}.panel:has(.chars) h1{font-size:34px;margin:0 0 4px}.panel:has(.chars){width:min(80%,760px)}
  .quiz .timer{margin:6px 0 2px}
  .quiz .boss-line{font-size:14px}.quiz .tools,.quiz .hintbtn{font-size:13px}
  .quiz .ans,.quiz .exp{font-size:14.5px}.quiz .v{font-size:19px}
 }
+/* 가로 화면 주인공 카드: 원화를 낮게 잘라 능력 설명이 더 많이 보이게 */
+@media (orientation:landscape) and (max-height:1100px){.pv-wrap{aspect-ratio:1/1}.pv-wrap img{object-position:50% 6%}
+ .panel:has(.chars) .lede{display:none}.panel:has(.chars) h1{font-size:36px;margin:2px 0 6px}.panel:has(.chars) h2{margin:6px 0 6px}
+ .char .info{gap:1px}.stat{font-size:13px}.char b{font-size:19px}}
+@media (orientation:landscape) and (max-height:540px){.pv-wrap{aspect-ratio:1/1}.pv-wrap canvas{width:40%}.panel:has(.chars) h1{font-size:28px}
+ .chars{grid-template-columns:repeat(3,minmax(0,1fr))}.char{grid-template-columns:minmax(0,1fr);align-items:start}}
+/* 주인공 고르기 화면: 상단 상태창까지 덮는 큰 창으로 띄운다 */
+.panel:has(.chars){position:fixed;inset:0;width:auto!important;max-width:none;margin:0;z-index:20;border-radius:14px;padding:22px 26px;background:rgba(21,20,27,.96)}
+.panel:has(.chars) .chars{gap:14px}
+.panel:has(.chars) .pv-wrap{aspect-ratio:auto;height:clamp(150px,40vh,400px)}.panel:has(.chars) .pv-wrap img{object-position:50% 8%}
+.panel:has(.chars) .pv-wrap canvas{width:auto;height:62%}
+.panel:has(.chars) .tbar{margin:10px -26px 0;padding:8px 26px 10px;bottom:-22px}
+@media (orientation:landscape) and (max-height:540px){.panel:has(.chars){padding:10px 14px}.panel:has(.chars) .tbar{margin:6px -14px 0;padding:6px 14px 8px;bottom:-10px}}
 </style>
 </head>
 <body>
@@ -1309,6 +1332,8 @@ let fitBusy=false;
 function fitPanel(){
  if(fitBusy||panel.hidden)return;fitBusy=true;
  const kids=[...panel.children];kids.forEach(k=>k.style.zoom='');
+ /* 주인공 고르기 화면은 글자가 작아지지 않게 줄이지 않고 스크롤한다 */
+ if(panel.querySelector('.chars')){fitBusy=false;return}
  for(let i=0;i<6;i++){
   const ch=panel.clientHeight,sh=panel.scrollHeight;if(sh<=ch+2)break;
   const cur=parseFloat(kids[0]&&kids[0].style.zoom)||1,z=Math.max(innerHeight<541?.8:.7,Math.min(1,cur*(ch-2)/sh));
@@ -1841,8 +1866,8 @@ function showTitle(){
   <h2>주인공 고르기</h2>
   <div class="chars">${Object.keys(CHARS).map(charCard).join('')}</div>
   ${URLSET.boss>=0?`<p class="keys" style="color:var(--gold);margin-top:12px">시험 모드: ${STAGES[URLSET.boss].num} 보스(${MOBS[STAGES[URLSET.boss].boss].name})전만 한다.</p>`:URLSET.stage>0?`<p class="keys" style="color:var(--gold);margin-top:12px">시험 모드: ${STAGES[URLSET.stage].num} ${STAGES[URLSET.stage].name}부터 시작한다.</p>`:''}
-  <p class="who-line">${esc(stuLabel())} <button class="linkbtn" data-act="entry">정보 바꾸기</button></p>
-  <div class="row" style="margin-top:14px"><button class="go" id="startBtn" data-act="start">원정 떠나기</button><button class="ghost" data-act="rank">오늘의 순위</button><span class="best">${best?`최고 기록 ${best}점 · `:''}<span id="rangeN">${rangeCount()}</span>문제에서 출제</span></div>
+  <div class="tbar"><p class="who-line">${esc(stuLabel())} <button class="linkbtn" data-act="entry">정보 바꾸기</button></p>
+  <div class="row" style="margin-top:10px"><button class="go" id="startBtn" data-act="start">원정 떠나기</button><button class="ghost" data-act="rank">오늘의 순위</button><span class="best">${best?`최고 기록 ${best}점 · `:''}<span id="rangeN">${rangeCount()}</span>문제에서 출제</span></div></div>
   ${URLSET.lock?`<h2>출제 범위</h2>
   <p class="keys" style="margin:0 0 6px">선생님이 정한 범위로 출제된다.</p>
   <div class="chips">${UNITS.filter(([id])=>G.units.has(id)).map(([id,nm])=>`<span class="chip" aria-pressed="true">${esc(nm)}</span>`).join('')}</div>
